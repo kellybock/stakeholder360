@@ -1,0 +1,29 @@
+{
+  "name": "youth360",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "db:generate": "turbo db:generate --filter=@youth360/db",
+    "db:migrate": "turbo db:migrate --filter=@youth360/db",
+    "db:seed": "turbo db:seed --filter=@youth360/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "npm@10.9.2",
+  "dependencies": {
+    "react-force-graph-2d": "^1.29.1"
+  }
+}

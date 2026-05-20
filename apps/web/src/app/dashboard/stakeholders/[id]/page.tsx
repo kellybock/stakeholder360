@@ -1,0 +1,518 @@
+'use client';
+
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { ProfileHeader } from '@/components/stakeholder/profile-header';
+import { Timeline } from '@/components/stakeholder/timeline';
+
+type Stakeholder360 = {
+  profile: Record<string, unknown>;
+  interactions: Record<string, unknown>[];
+  events: Record<string, unknown>[];
+  awards: Record<string, unknown>[];
+  community: Record<string, unknown>[];
+  overseas: Record<string, unknown>[];
+  areasOfInterest: Record<string, unknown>[];
+  timeline: { id: string; type: string; date: string; title: string; description: string | null; agency: string | null }[];
+  crossAgencyCount: number;
+  agencies: string[];
+  engagement: {
+    totalScore: number;
+    recencyScore: number;
+    frequencyScore: number;
+    depthScore: number;
+    breadthScore: number;
+    segment: string;
+    churnRisk: number;
+    lastContactDate: string | null;
+    daysSinceContact: number | null;
+  } | null;
+};
+
+const TABS = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'timeline', label: 'Timeline' },
+  { key: 'interactions', label: 'Interactions' },
+  { key: 'events', label: 'Events' },
+  { key: 'awards', label: 'Awards' },
+  { key: 'community', label: 'Community' },
+  { key: 'overseas', label: 'Overseas' },
+  { key: 'aoi', label: 'Areas of Interest' },
+  { key: 'ai', label: 'AI Insights' },
+];
+
+const INTEREST_COLORS: Record<string, string> = {
+  High: 'bg-green-100 text-green-700',
+  Medium: 'bg-amber-100 text-amber-700',
+  Low: 'bg-gray-100 text-gray-600',
+};
+
+export default function StakeholderProfilePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const router = useRouter();
+  const [data, setData] = useState<Stakeholder360 | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('overview');
+  const [briefContent, setBriefContent] = useState('');
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefProvider, setBriefProvider] = useState('claude');
+  const [recommendations, setRecommendations] = useState<{ type: string; priority: string; title: string; description: string }[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/stakeholders/${id}/360`)
+      .then(r => {
+        if (!r.ok) throw new Error('Not found');
+        return r.json();
+      })
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+
+    fetch(`/api/stakeholders/${id}/recommendations`)
+      .then(r => r.ok ? r.json() : { recommendations: [] })
+      .then(d => setRecommendations(d.recommendations ?? []))
+      .catch(() => {});
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <svg className="h-8 w-8 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => router.back()} className="text-sm text-primary hover:underline">&larr; Back</button>
+        <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+          Stakeholder not found
+        </div>
+      </div>
+    );
+  }
+
+  const p = data.profile as Record<string, string | number | boolean | null>;
+
+  return (
+    <div className="space-y-4">
+      <button onClick={() => router.back()} className="text-sm text-primary hover:underline">&larr; Back to Directory</button>
+
+      <ProfileHeader
+        profile={p as never}
+        crossAgencyCount={data.crossAgencyCount}
+        agencies={data.agencies}
+      />
+
+      {/* Tabs */}
+      <div className="border-b border-border">
+        <div className="flex gap-0 overflow-x-auto">
+          {TABS.map(t => {
+            let count = 0;
+            if (t.key === 'interactions') count = data.interactions.length;
+            else if (t.key === 'events') count = data.events.length;
+            else if (t.key === 'awards') count = data.awards.length;
+            else if (t.key === 'community') count = data.community.length;
+            else if (t.key === 'overseas') count = data.overseas.length;
+            else if (t.key === 'aoi') count = data.areasOfInterest.length;
+            else if (t.key === 'timeline') count = data.timeline.length;
+
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  'whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
+                  tab === t.key
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {t.label}
+                {count > 0 && <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px]">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Engagement Score Bar */}
+      {data.engagement && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <p className="text-3xl font-bold">{data.engagement.totalScore}</p>
+              <p className="text-[10px] text-muted-foreground">Engagement</p>
+            </div>
+            <div className="flex-1 grid grid-cols-4 gap-3">
+              {[
+                { label: 'Recency', value: data.engagement.recencyScore },
+                { label: 'Frequency', value: data.engagement.frequencyScore },
+                { label: 'Depth', value: data.engagement.depthScore },
+                { label: 'Breadth', value: data.engagement.breadthScore },
+              ].map(m => (
+                <div key={m.label}>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">{m.label}</span>
+                    <span className="font-medium">{m.value}</span>
+                  </div>
+                  <div className="mt-1 h-1.5 rounded-full bg-muted">
+                    <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.min(100, m.value)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={cn(
+                'rounded-full px-2.5 py-1 text-xs font-medium',
+                data.engagement.segment === 'Champion' ? 'bg-purple-100 text-purple-700' :
+                data.engagement.segment === 'Rising Star' ? 'bg-blue-100 text-blue-700' :
+                data.engagement.segment === 'Active' ? 'bg-green-100 text-green-700' :
+                data.engagement.segment === 'At-Risk' ? 'bg-amber-100 text-amber-700' :
+                'bg-gray-100 text-gray-500'
+              )}>
+                {data.engagement.segment}
+              </span>
+              {data.engagement.churnRisk >= 50 && (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700">
+                  Churn risk: {data.engagement.churnRisk}%
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab content */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold mb-3">Personal Details</h3>
+              <dl className="space-y-2 text-sm">
+                {[
+                  ['Race', p.race],
+                  ['Sex', p.sex],
+                  ['Year of Birth', p.yearOfBirth],
+                  ['Residential Status', p.residentialStatus],
+                  ['Data Consent', p.dataConsent ? 'Yes' : 'No'],
+                ].map(([label, value]) => value && (
+                  <div key={String(label)} className="flex gap-3">
+                    <dt className="w-32 text-muted-foreground">{String(label)}</dt>
+                    <dd>{String(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div>
+              {p.writeUp && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold mb-2">Write-up</h3>
+                  <p className="text-sm text-muted-foreground">{String(p.writeUp)}</p>
+                </div>
+              )}
+              {p.reasonForNomination && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold mb-2">Reason for Nomination</h3>
+                  <p className="text-sm text-muted-foreground">{String(p.reasonForNomination)}</p>
+                </div>
+              )}
+              {p.areasOfInterest && (
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">Areas of Interest</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {String(p.areasOfInterest).split(';').map(a => a.trim()).filter(Boolean).map(a => (
+                      <span key={a} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === 'timeline' && <Timeline entries={data.timeline} />}
+
+        {tab === 'interactions' && (
+          <div className="space-y-3">
+            {data.interactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No interactions recorded</p>
+            ) : data.interactions.map((i: Record<string, unknown>) => (
+              <div key={String(i.id)} className="rounded-lg border border-border p-4">
+                <div className="flex items-start justify-between">
+                  <p className="text-sm font-medium">{String(i.interactionDetails ?? 'Interaction')}</p>
+                  <span className="text-xs text-muted-foreground">{String(i.meetingDate ?? '')}</span>
+                </div>
+                {i.pocStaffName ? <p className="mt-1 text-xs text-muted-foreground">POC: {String(i.pocStaffName)}</p> : null}
+                {i.briefNotes ? <p className="mt-2 text-xs text-muted-foreground">{String(i.briefNotes)}</p> : null}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'events' && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Event</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Date</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Organizer</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Role</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Attendance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.events.map((e: Record<string, unknown>) => (
+                  <tr key={String(e.id)} className="border-b border-border last:border-0">
+                    <td className="px-3 py-2 font-medium">{String(e.eventTitle)}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{String(e.startDate ?? '')}</td>
+                    <td className="px-3 py-2 text-xs">{String(e.organizerAgency ?? '').match(/\(([^)]+)\)/)?.[1] ?? String(e.organizerAgency ?? '')}</td>
+                    <td className="px-3 py-2 text-xs">{String(e.roleOfYouth ?? '')}</td>
+                    <td className="px-3 py-2">
+                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium',
+                        String(e.attendance) === 'Attended' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                      )}>{String(e.attendance ?? '')}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'awards' && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {data.awards.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8 col-span-2">No awards recorded</p>
+            ) : data.awards.map((a: Record<string, unknown>) => (
+              <div key={String(a.id)} className="rounded-lg border border-border p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🏆</span>
+                  <div>
+                    <p className="text-sm font-medium">{String(a.awardName)}</p>
+                    {a.year ? <p className="text-xs text-muted-foreground">Year: {String(a.year)}</p> : null}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'community' && (
+          <div className="space-y-3">
+            {data.community.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No community roles recorded</p>
+            ) : data.community.map((c: Record<string, unknown>) => (
+              <div key={String(c.id)} className="rounded-lg border border-border p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{String(c.role ?? 'Member')} at {String(c.orgGroupName ?? 'Organisation')}</p>
+                    {c.description ? <p className="mt-1 text-xs text-muted-foreground">{String(c.description)}</p> : null}
+                  </div>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {String(c.startDate ?? '')} — {String(c.endDate ?? 'Present')}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'overseas' && (
+          <div className="space-y-3">
+            {data.overseas.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">No overseas representation recorded</p>
+            ) : data.overseas.map((o: Record<string, unknown>) => (
+              <div key={String(o.id)} className="rounded-lg border border-border p-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">🌏</span>
+                  <div>
+                    <p className="text-sm font-medium">Year: {String(o.year ?? 'N/A')}</p>
+                    {o.description ? <p className="mt-1 text-xs text-muted-foreground">{String(o.description)}</p> : null}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'aoi' && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Area of Interest</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Alignment</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">Interest</th>
+                  <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">Influence</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Agency</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.areasOfInterest.map((a: Record<string, unknown>) => (
+                  <tr key={String(a.id)} className="border-b border-border last:border-0">
+                    <td className="px-3 py-2 font-medium">{String(a.areaOfInterest)}</td>
+                    <td className="px-3 py-2 text-xs text-muted-foreground">{String(a.alignment ?? '')}</td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', INTEREST_COLORS[String(a.levelOfInterest)] ?? '')}>
+                        {String(a.levelOfInterest ?? '')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', INTEREST_COLORS[String(a.levelOfInfluence)] ?? '')}>
+                        {String(a.levelOfInfluence ?? '')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {String(a.agency ?? '').match(/\(([^)]+)\)/)?.[1] ?? String(a.agency ?? '')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === 'ai' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">AI Meeting Brief</h3>
+                <p className="text-xs text-muted-foreground">Generate an AI-powered meeting preparation brief for this stakeholder</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={briefProvider}
+                  onChange={e => setBriefProvider(e.target.value)}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                >
+                  <option value="claude">Claude</option>
+                  <option value="openai">ChatGPT</option>
+                  <option value="gemini">Gemini</option>
+                </select>
+                <button
+                  onClick={async () => {
+                    setBriefLoading(true);
+                    setBriefContent('');
+                    try {
+                      const res = await fetch('/api/ai/brief', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ stakeholderId: id, provider: briefProvider }),
+                      });
+                      if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Brief generation failed');
+                      }
+                      const reader = res.body?.getReader();
+                      if (!reader) throw new Error('No stream');
+                      const decoder = new TextDecoder();
+                      let acc = '';
+                      while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        const text = decoder.decode(value, { stream: true });
+                        for (const line of text.split('\n')) {
+                          if (!line.startsWith('data: ')) continue;
+                          try {
+                            const parsed = JSON.parse(line.slice(6));
+                            if (parsed.error) throw new Error(parsed.error);
+                            if (parsed.text) { acc += parsed.text; setBriefContent(acc); }
+                          } catch (e) { if (!(e instanceof SyntaxError)) throw e; }
+                        }
+                      }
+                    } catch (err) {
+                      setBriefContent(`**Error:** ${err instanceof Error ? err.message : 'Failed to generate brief'}`);
+                    } finally {
+                      setBriefLoading(false);
+                    }
+                  }}
+                  disabled={briefLoading}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                    briefLoading ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  )}
+                >
+                  {briefLoading ? 'Generating...' : 'Generate Brief'}
+                </button>
+              </div>
+            </div>
+
+            {briefContent ? (
+              <div className="rounded-lg border border-border bg-background p-4 text-sm prose prose-sm max-w-none dark:prose-invert">
+                {briefContent.split('\n').map((line, i) => {
+                  if (line.startsWith('## ')) return <h2 key={i} className="mt-4 mb-1 text-base font-semibold">{line.slice(3)}</h2>;
+                  if (line.startsWith('### ')) return <h3 key={i} className="mt-3 mb-1 text-sm font-semibold">{line.slice(4)}</h3>;
+                  if (line.startsWith('# ')) return <h1 key={i} className="mt-4 mb-2 text-lg font-bold">{line.slice(2)}</h1>;
+                  if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
+                  if (/^\d+\.\s/.test(line)) return <li key={i} className="ml-4 list-decimal">{line.replace(/^\d+\.\s/, '')}</li>;
+                  if (line.startsWith('---')) return <hr key={i} className="my-3" />;
+                  if (line.trim() === '') return <br key={i} />;
+                  return <p key={i} className="my-1">{line.replace(/\*\*(.+?)\*\*/g, '$1')}</p>;
+                })}
+              </div>
+            ) : !briefLoading ? (
+              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                Click &ldquo;Generate Brief&rdquo; to create an AI meeting preparation brief
+              </div>
+            ) : (
+              <div className="flex h-32 items-center justify-center">
+                <svg className="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            )}
+
+            {/* Next Best Actions */}
+            {recommendations.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Next Best Actions</h3>
+                <div className="space-y-2">
+                  {recommendations.map((r, i) => (
+                    <div key={i} className={cn(
+                      'rounded-lg border p-3',
+                      r.priority === 'high' ? 'border-red-200 bg-red-50' :
+                      r.priority === 'medium' ? 'border-amber-200 bg-amber-50' :
+                      'border-border bg-background'
+                    )}>
+                      <div className="flex items-start gap-2">
+                        <span className="text-sm">
+                          {r.type === 'action' ? '⚡' : r.type === 'connection' ? '🤝' : r.type === 'event' ? '📅' : '🔔'}
+                        </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs font-semibold">{r.title}</p>
+                            <span className={cn(
+                              'rounded-full px-1.5 py-0.5 text-[9px] font-medium',
+                              r.priority === 'high' ? 'bg-red-100 text-red-700' :
+                              r.priority === 'medium' ? 'bg-amber-100 text-amber-700' :
+                              'bg-gray-100 text-gray-600'
+                            )}>
+                              {r.priority}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{r.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
