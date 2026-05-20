@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youth360 — AWS EC2 Windows Setup Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.6;
+  }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 48px 24px 72px; }
+
+  /* Header */
+  .header { text-align: center; margin-bottom: 56px; }
+  .header .logo {
+    display: inline-flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  }
+  .header .logo-box {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 14px;
+    box-shadow: 0 4px 14px rgba(245,158,11,.4);
+  }
+  .header .aws-badge {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 4px 12px; font-size: 12px; font-weight: 600; color: #f59e0b;
+  }
+  .header .win-badge {
+    background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+    padding: 4px 12px; font-size: 12px; font-weight: 600; color: #3b82f6;
+  }
+  .header h1 {
+    font-size: 36px; font-weight: 900; letter-spacing: -1px;
+    background: linear-gradient(135deg, #f59e0b, #f97316, #ef4444);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  .header p { font-size: 16px; color: #94a3b8; max-width: 600px; margin: 0 auto; }
+
+  /* Prerequisites */
+  .prereq {
+    background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+    padding: 28px 32px; margin-bottom: 48px;
+  }
+  .prereq h2 { font-size: 16px; font-weight: 700; color: #f59e0b; margin-bottom: 14px; }
+  .prereq-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .prereq-item {
+    background: #0f172a; border: 1px solid #334155; border-radius: 10px;
+    padding: 14px 16px; text-align: center;
+  }
+  .prereq-item .emoji { font-size: 22px; margin-bottom: 6px; }
+  .prereq-item .label { font-size: 12px; font-weight: 600; color: #cbd5e1; }
+  .prereq-item .sub { font-size: 10px; color: #64748b; margin-top: 2px; }
+
+  /* Architecture diagram */
+  .arch {
+    background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+    padding: 32px; margin-bottom: 48px; text-align: center;
+  }
+  .arch h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .arch-flow {
+    display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap;
+  }
+  .arch-box {
+    background: #0f172a; border: 2px solid #334155; border-radius: 12px;
+    padding: 16px 20px; min-width: 130px; text-align: center;
+  }
+  .arch-box .ab-icon { font-size: 24px; margin-bottom: 6px; }
+  .arch-box .ab-title { font-size: 12px; font-weight: 700; color: #f8fafc; }
+  .arch-box .ab-sub { font-size: 10px; color: #64748b; }
+  .arch-box.highlight { border-color: #f59e0b; box-shadow: 0 0 20px rgba(245,158,11,.15); }
+  .arch-arrow { font-size: 20px; color: #475569; margin: 0 8px; }
+
+  /* Steps */
+  .steps { position: relative; }
+  .steps::before {
+    content: ''; position: absolute; left: 32px; top: 0; bottom: 0;
+    width: 2px; background: linear-gradient(to bottom, #f59e0b, #f97316, #ef4444, #8b5cf6, #22c55e);
+    border-radius: 2px;
+  }
+
+  .step {
+    position: relative; padding-left: 80px; margin-bottom: 40px;
+  }
+  .step:last-child { margin-bottom: 0; }
+
+  .step-num {
+    position: absolute; left: 16px; top: 0;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #fff;
+    z-index: 1;
+  }
+  .step-num.orange { background: linear-gradient(135deg, #f59e0b, #f97316); }
+  .step-num.red { background: linear-gradient(135deg, #f97316, #ef4444); }
+  .step-num.purple { background: linear-gradient(135deg, #8b5cf6, #a855f7); }
+  .step-num.green { background: linear-gradient(135deg, #22c55e, #10b981); }
+  .step-num.blue { background: linear-gradient(135deg, #3b82f6, #6366f1); }
+  .step-num.pink { background: linear-gradient(135deg, #ec4899, #f43f5e); }
+  .step-num.cyan { background: linear-gradient(135deg, #06b6d4, #0ea5e9); }
+  .step-num.teal { background: linear-gradient(135deg, #14b8a6, #22c55e); }
+  .step-num.amber { background: linear-gradient(135deg, #f59e0b, #eab308); }
+
+  .step-card {
+    background: #1e293b; border: 1px solid #334155; border-radius: 14px;
+    padding: 24px 28px; position: relative;
+  }
+  .step-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
+  .step-card .desc { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+
+  .step-card .time-badge {
+    position: absolute; top: 24px; right: 24px;
+    background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+    padding: 2px 10px; font-size: 10px; font-weight: 600; color: #64748b;
+  }
+
+  /* Code blocks */
+  .code-block {
+    background: #0f172a; border: 1px solid #334155; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 12px; overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.7; color: #e2e8f0;
+  }
+  .code-block:last-child { margin-bottom: 0; }
+  .code-block .comment { color: #64748b; }
+  .code-block .cmd { color: #22d3ee; }
+  .code-block .flag { color: #a78bfa; }
+  .code-block .string { color: #34d399; }
+  .code-block .var { color: #fbbf24; }
+  .code-block .file { color: #f472b6; }
+
+  .code-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .8px; color: #64748b; margin-bottom: 8px;
+  }
+
+  /* Tip callouts */
+  .tip {
+    background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2);
+    border-radius: 10px; padding: 12px 16px; margin-top: 14px;
+    font-size: 12px; color: #fbbf24;
+  }
+  .tip strong { color: #f59e0b; }
+
+  .warning {
+    background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+    border-radius: 10px; padding: 12px 16px; margin-top: 14px;
+    font-size: 12px; color: #fca5a5;
+  }
+  .warning strong { color: #ef4444; }
+
+  .success {
+    background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2);
+    border-radius: 10px; padding: 12px 16px; margin-top: 14px;
+    font-size: 12px; color: #86efac;
+  }
+  .success strong { color: #22c55e; }
+
+  /* Config table */
+  .config-table {
+    width: 100%; border-collapse: collapse; margin-top: 12px;
+    font-size: 12px;
+  }
+  .config-table th {
+    text-align: left; padding: 8px 12px; background: #0f172a;
+    border: 1px solid #334155; color: #94a3b8; font-weight: 600;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .config-table td {
+    padding: 8px 12px; border: 1px solid #334155; color: #cbd5e1;
+  }
+  .config-table td code {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    background: #0f172a; padding: 1px 5px; border-radius: 4px; color: #22d3ee;
+  }
+
+  /* Final section */
+  .final {
+    background: linear-gradient(135deg, #065f46, #047857);
+    border-radius: 16px; padding: 36px 32px; margin-top: 56px;
+    text-align: center;
+  }
+  .final h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .final p { font-size: 14px; opacity: .85; max-width: 500px; margin: 0 auto 20px; }
+  .final .url {
+    display: inline-block; background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 10px;
+    padding: 10px 24px; font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; font-weight: 600;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center; margin-top: 48px; padding-top: 24px;
+    border-top: 1px solid #1e293b;
+  }
+  .footer p { font-size: 12px; color: #475569; }
+
+  /* Checklist */
+  .checklist { list-style: none; margin-top: 12px; }
+  .checklist li {
+    padding: 4px 0 4px 22px; position: relative;
+    font-size: 12px; color: #cbd5e1;
+  }
+  .checklist li::before {
+    content: '\2713'; position: absolute; left: 0; color: #22c55e; font-weight: 700;
+  }
+
+  @media (max-width: 768px) {
+    .prereq-grid { grid-template-columns: repeat(2, 1fr); }
+    .arch-flow { flex-direction: column; gap: 8px; }
+    .arch-arrow { transform: rotate(90deg); }
+    .step { padding-left: 64px; }
+    .steps::before { left: 24px; }
+    .step-num { left: 8px; }
+    .header h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-box">Y3</div>
+      <span class="aws-badge">AWS EC2</span>
+      <span class="win-badge">Windows Server</span>
+    </div>
+    <h1>Windows Deployment Guide</h1>
+    <p>Step-by-step instructions to deploy the Youth360 Stakeholder Portal on a Windows Server EC2 instance</p>
+  </div>
+
+  <!-- Prerequisites -->
+  <div class="prereq">
+    <h2>&#9889; Prerequisites</h2>
+    <div class="prereq-grid">
+      <div class="prereq-item">
+        <div class="emoji">&#9729;&#65039;</div>
+        <div class="label">AWS Account</div>
+        <div class="sub">With EC2 access</div>
+      </div>
+      <div class="prereq-item">
+        <div class="emoji">&#128273;</div>
+        <div class="label">RDP Key Pair</div>
+        <div class="sub">For Windows password</div>
+      </div>
+      <div class="prereq-item">
+        <div class="emoji">&#127760;</div>
+        <div class="label">Domain (Optional)</div>
+        <div class="sub">For HTTPS with SSL</div>
+      </div>
+      <div class="prereq-item">
+        <div class="emoji">&#129302;</div>
+        <div class="label">AI API Key</div>
+        <div class="sub">Anthropic, OpenAI, or Google</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="arch">
+    <h2>Target Architecture</h2>
+    <div class="arch-flow">
+      <div class="arch-box">
+        <div class="ab-icon">&#128187;</div>
+        <div class="ab-title">Browser</div>
+        <div class="ab-sub">User</div>
+      </div>
+      <div class="arch-arrow">&#10132;</div>
+      <div class="arch-box">
+        <div class="ab-icon">&#128274;</div>
+        <div class="ab-title">IIS</div>
+        <div class="ab-sub">SSL + Reverse Proxy</div>
+      </div>
+      <div class="arch-arrow">&#10132;</div>
+      <div class="arch-box highlight">
+        <div class="ab-icon">&#9881;&#65039;</div>
+        <div class="ab-title">Next.js App</div>
+        <div class="ab-sub">Port 3000 (NSSM)</div>
+      </div>
+      <div class="arch-arrow">&#10132;</div>
+      <div class="arch-box">
+        <div class="ab-icon">&#128451;&#65039;</div>
+        <div class="ab-title">PostgreSQL</div>
+        <div class="ab-sub">RDS or local</div>
+      </div>
+      <div class="arch-arrow">&#10132;</div>
+      <div class="arch-box">
+        <div class="ab-icon">&#129302;</div>
+        <div class="ab-title">AI APIs</div>
+        <div class="ab-sub">Claude / GPT / Gemini</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-num orange">1</div>
+      <div class="step-card">
+        <h3>Launch a Windows EC2 Instance</h3>
+        <div class="desc">Create a new EC2 instance from the AWS Console</div>
+        <span class="time-badge">~5 min</span>
+        <table class="config-table">
+          <thead><tr><th>Setting</th><th>Recommended Value</th></tr></thead>
+          <tbody>
+            <tr><td>AMI</td><td><code>Windows Server 2022 Base</code></td></tr>
+            <tr><td>Instance Type</td><td><code>t3.medium</code> (2 vCPU, 4 GB RAM)</td></tr>
+            <tr><td>Storage</td><td><code>50 GB</code> gp3 SSD</td></tr>
+            <tr><td>Key Pair</td><td>Select or create (needed for password retrieval)</td></tr>
+            <tr><td>Security Group</td><td>Allow RDP (3389), HTTP (80), HTTPS (443)</td></tr>
+          </tbody>
+        </table>
+        <div class="tip">
+          <strong>&#128161; Tip:</strong> For production with multiple users, consider <code>t3.large</code> (8 GB RAM). Enable an Elastic IP so the public IP persists across restarts.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-num red">2</div>
+      <div class="step-card">
+        <h3>Connect via Remote Desktop (RDP)</h3>
+        <div class="desc">Retrieve the admin password and RDP into the instance</div>
+        <span class="time-badge">~3 min</span>
+        <ul class="checklist">
+          <li>In EC2 Console, select instance &rarr; Connect &rarr; RDP Client</li>
+          <li>Click "Get Password" &rarr; Upload your .pem key file</li>
+          <li>Copy the decrypted Administrator password</li>
+          <li>Open Remote Desktop and connect to the public IP</li>
+        </ul>
+        <div class="tip">
+          <strong>&#128161; Tip:</strong> Wait 5-10 minutes after launch for the Windows password to be available. The instance must fully initialize first.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-num purple">3</div>
+      <div class="step-card">
+        <h3>Option A: One-Command Setup (Recommended)</h3>
+        <div class="desc">Run the automated setup script to install everything</div>
+        <span class="time-badge">~10 min</span>
+        <div class="code-label">Open PowerShell as Administrator and run:</div>
+        <div class="code-block">
+<span class="cmd">Set-ExecutionPolicy</span> <span class="flag">Bypass</span> <span class="flag">-Scope Process -Force</span>
+<span class="cmd">git clone</span> <span class="string">https://github.com/kellybock/stakeholder360.git</span> <span class="file">C:\youth360</span>
+<span class="cmd">cd</span> <span class="file">C:\youth360</span>
+<span class="cmd">.\deploy\setup.ps1</span>
+        </div>
+        <div class="success">
+          <strong>&#9989; Done!</strong> The script installs Chocolatey, Node.js, Git, NSSM, builds the app, configures the firewall, and starts Youth360 as a Windows service. Skip to Step 9.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-num blue">4</div>
+      <div class="step-card">
+        <h3>Option B: Manual — Install Dependencies</h3>
+        <div class="desc">Install Chocolatey package manager, then Node.js, Git, and NSSM</div>
+        <span class="time-badge">~5 min</span>
+        <div class="code-label">Install Chocolatey</div>
+        <div class="code-block">
+<span class="cmd">Set-ExecutionPolicy</span> <span class="flag">Bypass</span> <span class="flag">-Scope Process -Force</span>
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+<span class="cmd">Invoke-Expression</span> ((New-Object System.Net.WebClient).DownloadString(<span class="string">'https://community.chocolatey.org/install.ps1'</span>))
+        </div>
+        <div class="code-label">Install Node.js 20, Git, and NSSM</div>
+        <div class="code-block">
+<span class="cmd">choco install</span> nodejs-lts git nssm <span class="flag">-y</span>
+        </div>
+        <div class="code-label">Refresh PATH and verify</div>
+        <div class="code-block">
+$env:Path = [System.Environment]::GetEnvironmentVariable(<span class="string">"Path"</span>, <span class="string">"Machine"</span>) + <span class="string">";"</span> + [System.Environment]::GetEnvironmentVariable(<span class="string">"Path"</span>, <span class="string">"User"</span>)
+<span class="cmd">node</span> <span class="flag">--version</span>    <span class="comment"># v20.x.x</span>
+<span class="cmd">git</span> <span class="flag">--version</span>     <span class="comment"># git version 2.x</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="step-num green">5</div>
+      <div class="step-card">
+        <h3>Manual — Clone and Build</h3>
+        <div class="desc">Pull the Youth360 source code and build the production bundle</div>
+        <span class="time-badge">~5 min</span>
+        <div class="code-block">
+<span class="cmd">git clone</span> <span class="string">https://github.com/kellybock/stakeholder360.git</span> <span class="file">C:\youth360</span>
+<span class="cmd">cd</span> <span class="file">C:\youth360</span>
+<span class="cmd">npm install</span> <span class="flag">--omit=dev</span>
+<span class="cmd">npm run build</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step">
+      <div class="step-num pink">6</div>
+      <div class="step-card">
+        <h3>Manual — Configure Environment</h3>
+        <div class="desc">Create your <code>.env.local</code> with secrets and API keys</div>
+        <span class="time-badge">~3 min</span>
+        <div class="code-label">Create environment file</div>
+        <div class="code-block">
+<span class="cmd">notepad</span> <span class="file">C:\youth360\apps\web\.env.local</span>
+        </div>
+        <div class="code-label">Paste these variables</div>
+        <div class="code-block">
+<span class="comment"># Auth (generate random values)</span>
+<span class="var">SESSION_SECRET</span>=<span class="string">&lt;64-char hex string&gt;</span>
+<span class="var">NRIC_ENCRYPTION_KEY</span>=<span class="string">&lt;32-char hex string&gt;</span>
+
+<span class="comment"># AI Providers (add at least one)</span>
+<span class="var">ANTHROPIC_API_KEY</span>=<span class="string">sk-ant-api03-your-key-here</span>
+<span class="var">OPENAI_API_KEY</span>=<span class="string">sk-your-key-here</span>
+<span class="var">GOOGLE_AI_API_KEY</span>=<span class="string">your-key-here</span>
+
+<span class="comment"># Database (optional — uses in-memory store by default)</span>
+<span class="var">DATABASE_URL</span>=<span class="string">postgresql://user:pass@rds-endpoint:5432/youth360</span>
+        </div>
+        <div class="warning">
+          <strong>&#9888; Security:</strong> Never commit <code>.env.local</code> to Git. For production, use AWS Secrets Manager.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="step">
+      <div class="step-num cyan">7</div>
+      <div class="step-card">
+        <h3>Manual — Install as Windows Service</h3>
+        <div class="desc">Use NSSM to run Youth360 as an auto-starting Windows service</div>
+        <span class="time-badge">~2 min</span>
+        <div class="code-block">
+<span class="comment"># Register the service</span>
+<span class="cmd">nssm install</span> youth360 <span class="file">C:\youth360\apps\web\node_modules\.bin\next.cmd</span> start
+<span class="cmd">nssm set</span> youth360 AppDirectory <span class="file">C:\youth360\apps\web</span>
+<span class="cmd">nssm set</span> youth360 AppEnvironmentExtra <span class="string">"NODE_ENV=production"</span> <span class="string">"PORT=3000"</span>
+<span class="cmd">nssm set</span> youth360 Start SERVICE_AUTO_START
+
+<span class="comment"># Start it</span>
+<span class="cmd">nssm start</span> youth360
+        </div>
+        <div class="success">
+          <strong>&#9989; Check:</strong> Open a browser on the server and visit <code>http://localhost:3000</code> — you should see the login page.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="step">
+      <div class="step-num teal">8</div>
+      <div class="step-card">
+        <h3>Configure Windows Firewall</h3>
+        <div class="desc">Allow inbound traffic on ports 80, 443, and 3000</div>
+        <span class="time-badge">~1 min</span>
+        <div class="code-block">
+<span class="cmd">New-NetFirewallRule</span> <span class="flag">-DisplayName</span> <span class="string">"Youth360-HTTP"</span>  <span class="flag">-Direction Inbound -Protocol TCP -LocalPort 80</span>  <span class="flag">-Action Allow</span>
+<span class="cmd">New-NetFirewallRule</span> <span class="flag">-DisplayName</span> <span class="string">"Youth360-HTTPS"</span> <span class="flag">-Direction Inbound -Protocol TCP -LocalPort 443</span> <span class="flag">-Action Allow</span>
+<span class="cmd">New-NetFirewallRule</span> <span class="flag">-DisplayName</span> <span class="string">"Youth360-App"</span>   <span class="flag">-Direction Inbound -Protocol TCP -LocalPort 3000</span> <span class="flag">-Action Allow</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 9 -->
+    <div class="step">
+      <div class="step-num amber">9</div>
+      <div class="step-card">
+        <h3>Set Up IIS Reverse Proxy (Optional)</h3>
+        <div class="desc">Route port 80/443 traffic through IIS to Node.js on port 3000</div>
+        <span class="time-badge">~5 min</span>
+        <div class="code-label">Run the IIS setup script</div>
+        <div class="code-block">
+<span class="cmd">.\deploy\ssl-setup.ps1</span>                        <span class="comment"># HTTP only with self-signed cert</span>
+<span class="cmd">.\deploy\ssl-setup.ps1</span> <span class="flag">-Domain</span> <span class="var">yourdomain.com</span>   <span class="comment"># With Let's Encrypt SSL</span>
+        </div>
+        <div class="tip">
+          <strong>&#128161; Tip:</strong> Without IIS, users can access the app directly on port 3000. IIS adds SSL termination and lets you serve on standard ports 80/443.
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 10 -->
+    <div class="step">
+      <div class="step-num orange">10</div>
+      <div class="step-card">
+        <h3>Upload Sample Data</h3>
+        <div class="desc">Load the included sample data via the portal's upload page</div>
+        <span class="time-badge">~5 min</span>
+        <div class="code-label">Login credentials</div>
+        <div class="code-block">
+<span class="var">Email</span>:    <span class="string">admin@youth360.gov.sg</span>
+<span class="var">Password</span>: <span class="string">demo1234</span>
+        </div>
+        <div class="code-label">Upload the 8 CSV files from <code>sample-data/</code></div>
+        <ul class="checklist">
+          <li>profiles.csv &rarr; Profiles table</li>
+          <li>interactions.csv &rarr; Interactions table</li>
+          <li>events.csv &rarr; Events table</li>
+          <li>areas-of-interest.csv &rarr; Areas of Interest table</li>
+          <li>awards.csv &rarr; Awards table</li>
+          <li>community.csv &rarr; Community table</li>
+          <li>overseas-representation.csv &rarr; Overseas Representation table</li>
+          <li>relationship-managers.csv &rarr; Relationship Managers table</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 11 -->
+    <div class="step">
+      <div class="step-num red">11</div>
+      <div class="step-card">
+        <h3>Configure AI & Verify</h3>
+        <div class="desc">Add your AI API keys via the admin panel and test all features</div>
+        <span class="time-badge">~2 min</span>
+        <div class="code-label">In the portal UI</div>
+        <ul class="checklist">
+          <li>Go to Admin &rarr; API Keys & Settings</li>
+          <li>Add your Anthropic / OpenAI / Gemini API key</li>
+          <li>Select default model (e.g. Claude Sonnet 4.6)</li>
+          <li>Test AI Assistant: ask "Who are our top stakeholders?"</li>
+        </ul>
+        <div class="code-label">Verify all pages work</div>
+        <ul class="checklist">
+          <li>Dashboard &mdash; live KPI cards populated</li>
+          <li>Stakeholder Directory &mdash; 200 profiles with search</li>
+          <li>360 Profile &mdash; all 9 tabs with data</li>
+          <li>Engagement Analytics &mdash; charts and segments</li>
+          <li>Network Graph &mdash; interactive force graph</li>
+          <li>RM Workspace &mdash; pipeline, alerts, reminders</li>
+          <li>AI Assistant &mdash; streaming chat with database context</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Step 12 -->
+    <div class="step">
+      <div class="step-num green">12</div>
+      <div class="step-card">
+        <h3>Redeploy Updates</h3>
+        <div class="desc">When new code is pushed, pull and redeploy with one command</div>
+        <span class="time-badge">~2 min</span>
+        <div class="code-block">
+<span class="cmd">cd</span> <span class="file">C:\youth360</span>
+<span class="cmd">.\deploy\redeploy.ps1</span>
+        </div>
+        <div class="tip">
+          <strong>&#128161; Tip:</strong> The redeploy script pulls the latest code, reinstalls dependencies, rebuilds, and restarts the Windows service automatically.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Done -->
+  <div class="final">
+    <h2>&#127881; You're Live!</h2>
+    <p>Your Youth360 portal is now running on a Windows Server EC2 instance and accessible to your team.</p>
+    <div class="url">http://<span style="opacity:.6">&lt;your-ec2-ip&gt;</span>:3000</div>
+  </div>
+
+  <!-- Quick Reference -->
+  <div class="prereq" style="margin-top: 48px;">
+    <h2>&#128736;&#65039; Quick Reference Commands (PowerShell)</h2>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+      <div>
+        <div class="code-label">Check service status</div>
+        <div class="code-block"><span class="cmd">nssm status</span> youth360</div>
+      </div>
+      <div>
+        <div class="code-label">Restart service</div>
+        <div class="code-block"><span class="cmd">nssm restart</span> youth360</div>
+      </div>
+      <div>
+        <div class="code-label">View application logs</div>
+        <div class="code-block"><span class="cmd">Get-Content</span> <span class="file">C:\youth360\logs\service-out.log</span> <span class="flag">-Tail 50</span></div>
+      </div>
+      <div>
+        <div class="code-label">Pull latest & redeploy</div>
+        <div class="code-block"><span class="cmd">cd</span> <span class="file">C:\youth360</span> && <span class="cmd">.\deploy\redeploy.ps1</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>Youth360 Windows EC2 Setup Guide &middot; kellybock/stakeholder360 &middot; Built with Next.js + TypeScript</p>
+  </div>
+
+</div>
+</body>
+</html>
