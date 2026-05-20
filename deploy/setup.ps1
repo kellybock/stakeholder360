@@ -3,11 +3,22 @@
 # Run on a fresh Windows Server 2022 EC2 instance via PowerShell (Admin)
 #
 # Usage:
+#   Option A — Install from S3 (pre-built package):
+#     .\setup.ps1 -S3Url "https://your-bucket.s3.amazonaws.com/youth360-latest.zip"
+#
+#   Option B — Install from GitHub (builds on server):
+#     .\setup.ps1
+#
+# Steps:
 #   1. RDP into your Windows EC2 instance
 #   2. Open PowerShell as Administrator
 #   3. Run: Set-ExecutionPolicy Bypass -Scope Process -Force
-#   4. Run: .\setup.ps1
+#   4. Run one of the commands above
 # ==============================================================
+
+param(
+    [string]$S3Url = ""
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -21,8 +32,18 @@ function Log($msg) { Write-Host "[OK] $msg" -ForegroundColor Green }
 function Warn($msg) { Write-Host "[!] $msg" -ForegroundColor Yellow }
 function Step($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 
+if ($S3Url) {
+    $TotalSteps = 6
+    $Source = "S3"
+    Write-Host "Source: S3 package ($S3Url)" -ForegroundColor Cyan
+} else {
+    $TotalSteps = 7
+    $Source = "GitHub"
+    Write-Host "Source: GitHub repository ($RepoUrl)" -ForegroundColor Cyan
+}
+
 # ----------------------------------------------------------
-Step "1/7 — Installing Chocolatey (package manager)"
+Step "1/$TotalSteps — Installing Chocolatey (package manager)"
 # ----------------------------------------------------------
 if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
@@ -34,41 +55,70 @@ if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
 }
 
 # ----------------------------------------------------------
-Step "2/7 — Installing Node.js $NodeVersion, Git, and NSSM"
+if ($S3Url) {
+    Step "2/$TotalSteps — Installing Node.js $NodeVersion and NSSM"
+    choco install nodejs-lts nssm -y --no-progress | Out-Null
+} else {
+    Step "2/$TotalSteps — Installing Node.js $NodeVersion, Git, and NSSM"
+    choco install nodejs-lts git nssm -y --no-progress | Out-Null
+}
 # ----------------------------------------------------------
-choco install nodejs-lts git nssm -y --no-progress | Out-Null
 
 # Refresh PATH
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
 Log "Node.js $(node --version) installed"
-Log "Git $(git --version) installed"
+if (!$S3Url) { Log "Git $(git --version) installed" }
 Log "NSSM (service manager) installed"
 
 # ----------------------------------------------------------
-Step "3/7 — Cloning repository"
-# ----------------------------------------------------------
-if (Test-Path $AppDir) {
-    Warn "$AppDir already exists — pulling latest"
-    Set-Location $AppDir
-    git pull
+if ($S3Url) {
+    Step "3/$TotalSteps — Downloading and extracting package from S3"
+
+    $ZipPath = "$env:TEMP\youth360.zip"
+    Write-Host "Downloading from $S3Url ..."
+    Invoke-WebRequest -Uri $S3Url -OutFile $ZipPath -UseBasicParsing
+    Log "Package downloaded"
+
+    if (Test-Path $AppDir) {
+        Warn "$AppDir already exists — removing for clean install"
+        Remove-Item -Recurse -Force $AppDir
+    }
+
+    Write-Host "Extracting..."
+    Expand-Archive -Path $ZipPath -DestinationPath "C:\" -Force
+    Remove-Item $ZipPath
+    Log "Package extracted to $AppDir"
+
+    $StepOffset = 0
 } else {
-    git clone $RepoUrl $AppDir
-    Set-Location $AppDir
-    Log "Repository cloned to $AppDir"
+    Step "3/$TotalSteps — Cloning repository"
+
+    if (Test-Path $AppDir) {
+        Warn "$AppDir already exists — pulling latest"
+        Set-Location $AppDir
+        git pull
+    } else {
+        git clone $RepoUrl $AppDir
+        Set-Location $AppDir
+        Log "Repository cloned to $AppDir"
+    }
+
+    # ----------------------------------------------------------
+    Step "4/$TotalSteps — Installing dependencies and building"
+    # ----------------------------------------------------------
+    npm install --omit=dev 2>&1 | Select-Object -Last 1
+    Log "Dependencies installed"
+
+    npm run build 2>&1 | Select-Object -Last 3
+    Log "Application built"
+
+    $StepOffset = 1
 }
 
 # ----------------------------------------------------------
-Step "4/7 — Installing dependencies and building"
-# ----------------------------------------------------------
-npm install --omit=dev 2>&1 | Select-Object -Last 1
-Log "Dependencies installed"
-
-npm run build 2>&1 | Select-Object -Last 3
-Log "Application built"
-
-# ----------------------------------------------------------
-Step "5/7 — Creating environment file"
+$EnvStep = 4 + $StepOffset
+Step "$EnvStep/$TotalSteps — Creating environment file"
 # ----------------------------------------------------------
 $EnvFile = "$AppDir\apps\web\.env.local"
 if (Test-Path $EnvFile) {
@@ -96,7 +146,8 @@ GOOGLE_AI_API_KEY=
 }
 
 # ----------------------------------------------------------
-Step "6/7 — Configuring Windows Firewall"
+$FwStep = 5 + $StepOffset
+Step "$FwStep/$TotalSteps — Configuring Windows Firewall"
 # ----------------------------------------------------------
 $rules = @(
     @{ Name = "Youth360-HTTP";  Port = 80 },
@@ -113,7 +164,8 @@ foreach ($rule in $rules) {
 }
 
 # ----------------------------------------------------------
-Step "7/7 — Installing as Windows Service"
+$SvcStep = 6 + $StepOffset
+Step "$SvcStep/$TotalSteps — Installing as Windows Service"
 # ----------------------------------------------------------
 $NssmPath = (Get-Command nssm).Source
 $NodePath = (Get-Command node).Source
@@ -150,6 +202,7 @@ $PublicIp = try {
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Green
 Write-Host "  Youth360 deployment complete!" -ForegroundColor Green
+Write-Host "  Source: $Source" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Portal:   http://$PublicIp" -ForegroundColor Cyan
@@ -158,11 +211,15 @@ Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Upload sample data from sample-data/ folder"
 Write-Host "  2. Add AI API keys via Admin > Settings"
-Write-Host "  3. (Optional) Set up IIS reverse proxy for SSL"
+Write-Host "  3. (Optional) Set up IIS reverse proxy: .\deploy\ssl-setup.ps1"
 Write-Host ""
 Write-Host "  Useful commands:" -ForegroundColor Yellow
 Write-Host "  nssm status youth360        — check service status"
 Write-Host "  nssm restart youth360       — restart app"
 Write-Host "  Get-Content $AppDir\logs\service-out.log -Tail 50  — view logs"
-Write-Host "  .\deploy\redeploy.ps1       — pull and redeploy"
+if ($S3Url) {
+    Write-Host "  .\deploy\redeploy.ps1 -S3Url `"<url>`"  — redeploy from S3"
+} else {
+    Write-Host "  .\deploy\redeploy.ps1       — pull and redeploy"
+}
 Write-Host ""

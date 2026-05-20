@@ -5,15 +5,28 @@
 # Paste this into the "User data" field when launching a
 # Windows Server 2022 EC2 instance.
 #
+# IMPORTANT: Replace the $S3Url variable below with your actual
+# S3 URL, or leave blank to clone from GitHub.
+#
 # Instance requirements:
 #   AMI:    Windows Server 2022 Base
 #   Type:   t3.medium or larger
 #   Storage: 50 GB gp3
 #   Security Group: allow ports 3389 (RDP), 80, 443, 3000
+#
+# For S3 deployment: attach an IAM Role with S3 read access,
+# or use a public/pre-signed S3 URL below.
 # ==============================================================
 
 Start-Transcript -Path "C:\youth360-setup.log" -Append
 $ErrorActionPreference = "Stop"
+
+# ============================================================
+# CONFIGURE: Set your S3 URL here, or leave blank for GitHub
+# ============================================================
+$S3Url = ""
+# Example: $S3Url = "https://your-bucket.s3.ap-southeast-1.amazonaws.com/youth360-latest.zip"
+# ============================================================
 
 $AppName = "youth360"
 $AppDir = "C:\youth360"
@@ -25,15 +38,28 @@ $Port = 3000
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 $env:Path += ";C:\ProgramData\chocolatey\bin"
 
-# Install Node.js, Git, NSSM
-choco install nodejs-lts git nssm -y --no-progress | Out-Null
+# Install dependencies
+if ($S3Url) {
+    choco install nodejs-lts nssm -y --no-progress | Out-Null
+} else {
+    choco install nodejs-lts git nssm -y --no-progress | Out-Null
+}
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
-# Clone and build
-git clone $RepoUrl $AppDir
-Set-Location $AppDir
-npm install --omit=dev 2>&1 | Out-Null
-npm run build 2>&1 | Out-Null
+# Get the app
+if ($S3Url) {
+    # Download pre-built package from S3
+    $ZipPath = "$env:TEMP\youth360.zip"
+    Invoke-WebRequest -Uri $S3Url -OutFile $ZipPath -UseBasicParsing
+    Expand-Archive -Path $ZipPath -DestinationPath "C:\" -Force
+    Remove-Item $ZipPath
+} else {
+    # Clone and build from GitHub
+    git clone $RepoUrl $AppDir
+    Set-Location $AppDir
+    npm install --omit=dev 2>&1 | Out-Null
+    npm run build 2>&1 | Out-Null
+}
 
 # Generate env file
 $SessionSecret = -join ((1..32) | ForEach-Object { "{0:x2}" -f (Get-Random -Max 256) })
