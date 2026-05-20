@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createLLMProvider } from '@youth360/ai';
 import { dataStore } from '@/lib/store';
+import { getProviderApiKey } from '@/lib/ai-settings';
 
 export async function POST(request: NextRequest) {
   const { stakeholderId, provider: providerName = 'claude' } = await request.json();
@@ -89,11 +90,12 @@ Keep it actionable and specific. Use Singapore English.`;
 
   let llm;
   try {
-    llm = createLLMProvider(providerName);
+    const apiKey = getProviderApiKey(providerName) ?? undefined;
+    llm = createLLMProvider(providerName, apiKey);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Failed to create LLM provider';
     const hint = msg.includes('not set')
-      ? `${msg}. Add your API key to .env.local to enable AI features.`
+      ? `${msg}. Configure your API key in Admin > Settings to enable AI features.`
       : msg;
     return new Response(JSON.stringify({ error: hint }), {
       status: 400,
