@@ -18,16 +18,47 @@ type Conversation = {
   createdAt: string;
 };
 
-const PROVIDERS = [
-  { value: 'claude', label: 'Claude (Anthropic)' },
-  { value: 'openai', label: 'ChatGPT (OpenAI)' },
-  { value: 'gemini', label: 'Gemini (Google)' },
+type AIProvider = {
+  provider: string;
+  label: string;
+  hasKey: boolean;
+  enabled: boolean;
+  model: string;
+};
+
+const FALLBACK_PROVIDERS = [
+  { provider: 'claude', label: 'Anthropic Claude', hasKey: false, enabled: false, model: 'claude-sonnet-4-6-20250715' },
+  { provider: 'openai', label: 'OpenAI', hasKey: false, enabled: false, model: 'gpt-4o' },
+  { provider: 'gemini', label: 'Google Gemini', hasKey: false, enabled: false, model: 'gemini-2.0-flash' },
 ];
+
+const MODEL_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  claude: [
+    { value: 'claude-opus-4-7-20250715', label: 'Opus 4.7' },
+    { value: 'claude-opus-4-6-20250611', label: 'Opus 4.6' },
+    { value: 'claude-sonnet-4-6-20250715', label: 'Sonnet 4.6' },
+    { value: 'claude-sonnet-4-20250514', label: 'Sonnet 4.0' },
+    { value: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' },
+    { value: 'claude-3-5-haiku-20241022', label: 'Haiku 3.5' },
+  ],
+  openai: [
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+    { value: 'o3', label: 'o3' },
+  ],
+  gemini: [
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  ],
+};
 
 export default function AIChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [provider, setProvider] = useState('claude');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [aiProviders, setAiProviders] = useState<AIProvider[]>(FALLBACK_PROVIDERS);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [stakeholderSearch, setStakeholderSearch] = useState('');
@@ -38,6 +69,19 @@ export default function AIChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
+
+  useEffect(() => {
+    fetch('/api/admin/ai-settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d) return;
+        setAiProviders(d.providers);
+        if (d.defaultProvider) setProvider(d.defaultProvider);
+        const defaultP = d.providers.find((p: AIProvider) => p.provider === d.defaultProvider);
+        if (defaultP?.model) setSelectedModel(defaultP.model);
+      })
+      .catch(() => {});
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -228,7 +272,7 @@ export default function AIChatPage() {
                 >
                   <p className="truncate font-medium">{c.title}</p>
                   <p className="mt-0.5 text-[10px] opacity-60">
-                    {PROVIDERS.find(p => p.value === c.provider)?.label.split(' ')[0] ?? c.provider}
+                    {aiProviders.find(p => p.provider === c.provider)?.label.split(' ')[0] ?? c.provider}
                     {' · '}
                     {c.messages.filter(m => m.role === 'user').length} messages
                   </p>
@@ -242,14 +286,30 @@ export default function AIChatPage() {
         <div className="flex flex-1 flex-col">
           {/* Top bar: LLM selector + pinned stakeholders */}
           <div className="flex items-center gap-3 border-b border-border px-4 py-2.5">
-            <span className="text-xs font-medium text-muted-foreground">Model:</span>
+            <span className="text-xs font-medium text-muted-foreground">Provider:</span>
             <select
               value={provider}
-              onChange={e => setProvider(e.target.value)}
+              onChange={e => {
+                setProvider(e.target.value);
+                const p = aiProviders.find(ap => ap.provider === e.target.value);
+                if (p?.model) setSelectedModel(p.model);
+              }}
               className="rounded-md border border-border bg-background px-2 py-1 text-xs"
             >
-              {PROVIDERS.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+              {aiProviders.map(p => (
+                <option key={p.provider} value={p.provider} disabled={!p.hasKey || !p.enabled}>
+                  {p.label}{!p.hasKey ? ' (no key)' : !p.enabled ? ' (disabled)' : ''}
+                </option>
+              ))}
+            </select>
+            <span className="text-xs font-medium text-muted-foreground">Model:</span>
+            <select
+              value={selectedModel}
+              onChange={e => setSelectedModel(e.target.value)}
+              className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+            >
+              {(MODEL_OPTIONS[provider] ?? []).map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
 
