@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ProfileHeader } from '@/components/stakeholder/profile-header';
 import { Timeline } from '@/components/stakeholder/timeline';
+import { EngagementTimeline } from '@/components/stakeholder/engagement-timeline';
 
 type Stakeholder360 = {
   profile: Record<string, unknown>;
@@ -111,6 +112,7 @@ export default function StakeholderProfilePage({
         profile={p as never}
         crossAgencyCount={data.crossAgencyCount}
         agencies={data.agencies}
+        engagement={data.engagement}
       />
 
       {/* Tabs */}
@@ -191,6 +193,14 @@ export default function StakeholderProfilePage({
           </div>
         </div>
       )}
+
+      {/* Engagement Timeline Chart */}
+      <EngagementTimeline
+        interactions={data.interactions as { meetingDate?: string | null }[]}
+        events={data.events as { startDate?: string | null }[]}
+        awards={data.awards as { year?: number | null }[]}
+        community={data.community as { startDate?: string | null }[]}
+      />
 
       {/* Tab content */}
       <div className="rounded-xl border border-border bg-card p-6">

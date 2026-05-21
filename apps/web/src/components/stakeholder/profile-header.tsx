@@ -23,18 +23,38 @@ interface ProfileHeaderProps {
   };
   crossAgencyCount: number;
   agencies: string[];
+  engagement?: {
+    lastContactDate: string | null;
+    daysSinceContact: number | null;
+    segment: string;
+  } | null;
 }
 
-export function ProfileHeader({ profile, crossAgencyCount, agencies }: ProfileHeaderProps) {
+function formatLastContact(date: string | null, days: number | null): string {
+  if (!date || days === null) return 'No contact recorded';
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+  if (days < 365) return `${Math.floor(days / 30)} months ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
+function lastContactColor(days: number | null): string {
+  if (days === null) return 'text-muted-foreground';
+  if (days <= 30) return 'text-green-600';
+  if (days <= 90) return 'text-amber-600';
+  return 'text-red-600';
+}
+
+export function ProfileHeader({ profile, crossAgencyCount, agencies, engagement }: ProfileHeaderProps) {
   return (
     <div className="rounded-xl border border-border bg-card p-6">
       <div className="flex items-start gap-6">
-        {/* Avatar */}
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-primary-foreground">
           {profile.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}
         </div>
 
-        {/* Info */}
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold">{profile.fullName}</h1>
@@ -70,6 +90,15 @@ export function ProfileHeader({ profile, crossAgencyCount, agencies }: ProfileHe
               <span className="flex items-center gap-1">
                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                 {profile.mobileNumber}
+              </span>
+            )}
+            {engagement && (
+              <span className={cn('flex items-center gap-1', lastContactColor(engagement.daysSinceContact))}>
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Last engaged: {formatLastContact(engagement.lastContactDate, engagement.daysSinceContact)}
+                {engagement.lastContactDate && (
+                  <span className="text-muted-foreground text-[10px] ml-1">({engagement.lastContactDate})</span>
+                )}
               </span>
             )}
           </div>
