@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createLLMProvider, type LLMMessage } from '@youth360/ai';
-import { dataStore } from '@/lib/store';
+import { dataStore, getHydratedStore } from '@/lib/store';
 import { getProviderApiKey } from '@/lib/ai-settings';
 import { getEngagementScores } from '@/lib/engagement';
 
@@ -17,7 +17,7 @@ You have FULL ACCESS to the stakeholder database. A summary of the database is p
 
 When answering, be specific and cite stakeholder names, dates, and agencies where relevant. Use Singapore English conventions. Format responses with markdown for readability.`;
 
-function buildDatabaseSummary(): string {
+async function buildDatabaseSummary(): Promise<string> {
   const profiles = dataStore.profiles;
   const interactions = dataStore.interactions;
   const events = dataStore.events;
@@ -25,7 +25,7 @@ function buildDatabaseSummary(): string {
   const community = dataStore.community;
   const overseas = dataStore.overseasRepresentation;
   const aois = dataStore.areasOfInterest;
-  const scores = getEngagementScores();
+  const scores = await getEngagementScores();
 
   const agencyCounts = new Map<string, number>();
   interactions.forEach(i => {
@@ -175,6 +175,7 @@ function buildSearchContext(query: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  await getHydratedStore();
   const body = await request.json();
   const {
     messages,
@@ -210,7 +211,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const dbSummary = buildDatabaseSummary();
+  const dbSummary = await buildDatabaseSummary();
   const stakeholderContext = buildStakeholderContext(stakeholderIds);
   const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content ?? '';
   const searchContext = buildSearchContext(lastUserMessage);

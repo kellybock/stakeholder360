@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const sortBy = request.nextUrl.searchParams.get('sort') ?? 'totalScore';
   const order = request.nextUrl.searchParams.get('order') ?? 'desc';
 
-  const scores = refresh ? calculateAllScores() : getEngagementScores();
+  const scores = refresh ? await calculateAllScores() : await getEngagementScores();
 
   let filtered = segment
     ? scores.filter(s => s.segment.toLowerCase() === segment.toLowerCase())

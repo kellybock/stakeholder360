@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { dataStore, getHydratedStore } from '@/lib/store';
 
 export async function POST(request: Request) {
   try {
+    await getHydratedStore();
     const body = await request.json();
     const { tableTarget, rows, fileName } = body as {
       tableTarget: string;

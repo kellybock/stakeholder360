@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 import { getScoreForStakeholder } from '@/lib/engagement';
 
 export async function GET(
@@ -7,6 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const dataStore = await getHydratedStore();
   const profile = dataStore.profiles.find(p => p.id === id);
 
   if (!profile) {
@@ -132,6 +133,6 @@ export async function GET(
     timeline,
     crossAgencyCount: agencies.size,
     agencies: Array.from(agencies),
-    engagement: getScoreForStakeholder(id) ?? null,
+    engagement: (await getScoreForStakeholder(id)) ?? null,
   });
 }

@@ -1,4 +1,6 @@
 import { hashNric, maskNric } from '@youth360/shared';
+import { db } from '@youth360/db';
+import * as schema from '@youth360/db';
 
 export interface StoredProfile {
   id: string;
@@ -380,6 +382,154 @@ class DataStore {
     this.uploadHistory.unshift(record);
     return record;
   }
+
+  private _hydrated = false;
+  private _hydrating: Promise<void> | null = null;
+
+  async hydrate(): Promise<void> {
+    if (this._hydrated) return;
+    if (this._hydrating) return this._hydrating;
+    this._hydrating = this._doHydrate();
+    return this._hydrating;
+  }
+
+  private async _doHydrate(): Promise<void> {
+    try {
+      const dbProfiles = await db.select().from(schema.profiles);
+      if (dbProfiles.length === 0) {
+        this._hydrated = true;
+        return;
+      }
+
+      for (const p of dbProfiles) {
+        if (this.profiles.find(ep => ep.nricHash === p.nricHash)) continue;
+        this.profiles.push({
+          id: p.id,
+          nricHash: p.nricHash,
+          nricMasked: `****${p.nricHash.slice(-4).toUpperCase()}`,
+          fullName: p.fullName,
+          caseId: p.caseId,
+          caseStatus: p.caseStatus,
+          race: p.race,
+          sex: p.sex,
+          email: p.email,
+          mobileNumber: p.mobileNumber,
+          residentialStatus: p.residentialStatus,
+          yearOfBirth: p.yearOfBirth,
+          employerOrg: p.employerOrg,
+          designation: p.designation,
+          dataConsent: p.dataConsent ?? false,
+          linkedinHandle: p.linkedinHandle,
+          writeUp: p.writeUp,
+          reasonForNomination: p.reasonForNomination,
+          areasOfInterest: null,
+          rmDetails: p.rmDetails,
+          sourceAgency: p.sourceAgency,
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+        });
+      }
+
+      const dbRMs = await db.select().from(schema.relationshipManagers);
+      for (const rm of dbRMs) {
+        if (this.relationshipManagers.find(e => e.email === rm.email)) continue;
+        this.relationshipManagers.push({
+          id: rm.id,
+          rmId: rm.rmId,
+          name: rm.name,
+          email: rm.email,
+          agency: rm.agency,
+        });
+      }
+
+      const dbAOI = await db.select().from(schema.areasOfInterest);
+      for (const a of dbAOI) {
+        this.areasOfInterest.push({
+          id: a.id,
+          nricHash: a.nricHash,
+          aoiId: a.aoiId,
+          areaOfInterest: a.areaOfInterest,
+          alignment: a.alignment,
+          levelOfInterest: a.levelOfInterest,
+          levelOfInfluence: a.levelOfInfluence,
+          agency: a.agency,
+        });
+      }
+
+      const dbInteractions = await db.select().from(schema.interactions);
+      for (const i of dbInteractions) {
+        this.interactions.push({
+          id: i.id,
+          nricHash: i.nricHash,
+          interactionDetails: i.interactionDetails,
+          meetingDate: i.meetingDate,
+          agency: i.agency,
+          pocStaffName: i.pocStaffName,
+          pocStaffEmail: i.pocStaffEmail,
+          briefNotes: i.briefNotes,
+        });
+      }
+
+      const dbEvents = await db.select().from(schema.events);
+      for (const e of dbEvents) {
+        this.events.push({
+          id: e.id,
+          nricHash: e.nricHash,
+          eventTitle: e.eventTitle,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          description: e.description,
+          organizerAgency: e.organizerAgency,
+          partners: e.partners,
+          eventType: e.eventType,
+          aoiForEvent: e.aoiForEvent,
+          roleOfYouth: e.roleOfYouth,
+          attendance: e.attendance,
+          briefNotes: e.briefNotes,
+          additionalNotes: e.additionalNotes,
+        });
+      }
+
+      const dbAwards = await db.select().from(schema.awards);
+      for (const a of dbAwards) {
+        this.awards.push({
+          id: a.id,
+          nricHash: a.nricHash,
+          year: a.year,
+          awardName: a.awardName,
+          description: a.description,
+        });
+      }
+
+      const dbCommunity = await db.select().from(schema.community);
+      for (const c of dbCommunity) {
+        this.community.push({
+          id: c.id,
+          nricHash: c.nricHash,
+          startDate: c.startDate,
+          endDate: c.endDate,
+          orgGroupName: c.orgGroupName,
+          role: c.role,
+          description: c.description,
+        });
+      }
+
+      const dbOverseas = await db.select().from(schema.overseasRepresentation);
+      for (const o of dbOverseas) {
+        this.overseasRepresentation.push({
+          id: o.id,
+          nricHash: o.nricHash,
+          year: o.year,
+          description: o.description,
+        });
+      }
+
+      console.log(`[DataStore] Hydrated from DB: ${this.profiles.length} profiles, ${this.interactions.length} interactions, ${this.events.length} events`);
+    } catch (err) {
+      console.error('[DataStore] DB hydration failed (store will remain empty):', err);
+    }
+    this._hydrated = true;
+  }
 }
 
 // Singleton - persists across hot reloads in dev via globalThis
@@ -388,3 +538,8 @@ if (!globalStore.__dataStore) {
   globalStore.__dataStore = new DataStore();
 }
 export const dataStore = globalStore.__dataStore;
+
+export async function getHydratedStore(): Promise<DataStore> {
+  await dataStore.hydrate();
+  return dataStore;
+}

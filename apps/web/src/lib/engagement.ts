@@ -1,4 +1,4 @@
-import { dataStore, type StoredProfile } from './store';
+import { getHydratedStore, type StoredProfile } from './store';
 import { ENGAGEMENT_WEIGHTS } from '@youth360/shared';
 
 export interface EngagementScore {
@@ -15,6 +15,9 @@ export interface EngagementScore {
   lastContactDate: string | null;
   daysSinceContact: number | null;
 }
+
+// Module-level reference set by hydration; helper functions use this.
+let dataStore: Awaited<ReturnType<typeof getHydratedStore>>;
 
 function daysBetween(d1: string, d2: Date): number {
   return Math.floor((d2.getTime() - new Date(d1).getTime()) / 86400000);
@@ -106,7 +109,8 @@ function computeChurnRisk(daysSinceContact: number | null, frequencyScore: numbe
 
 const globalScores = globalThis as unknown as { __engagementScores?: EngagementScore[] };
 
-export function calculateAllScores(): EngagementScore[] {
+export async function calculateAllScores(): Promise<EngagementScore[]> {
+  dataStore = await getHydratedStore();
   const now = new Date();
   const scores: EngagementScore[] = [];
 
@@ -146,13 +150,13 @@ export function calculateAllScores(): EngagementScore[] {
   return scores;
 }
 
-export function getEngagementScores(): EngagementScore[] {
+export async function getEngagementScores(): Promise<EngagementScore[]> {
   if (globalScores.__engagementScores && globalScores.__engagementScores.length > 0) {
     return globalScores.__engagementScores;
   }
   return calculateAllScores();
 }
 
-export function getScoreForStakeholder(stakeholderId: string): EngagementScore | undefined {
-  return getEngagementScores().find(s => s.stakeholderId === stakeholderId);
+export async function getScoreForStakeholder(stakeholderId: string): Promise<EngagementScore | undefined> {
+  return (await getEngagementScores()).find(s => s.stakeholderId === stakeholderId);
 }

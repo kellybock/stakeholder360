@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { CSV_SCHEMAS, type TableTarget } from '@youth360/shared';
-import { dataStore } from '@/lib/store';
+import { dataStore, getHydratedStore } from '@/lib/store';
 
 export async function POST(request: Request) {
   try {
+    await getHydratedStore();
     const body = await request.json();
     const { tableTarget, rows } = body as { tableTarget: TableTarget; rows: Record<string, string>[] };
 

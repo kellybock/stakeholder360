@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 
 export async function GET() {
+  const dataStore = await getHydratedStore();
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
 

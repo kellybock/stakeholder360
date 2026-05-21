@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 
 function tokenize(text: string): string[] {
   return text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(t => t.length > 2);
@@ -21,6 +21,7 @@ function scoreMatch(query: string, text: string): number {
 }
 
 export async function GET(request: NextRequest) {
+  const dataStore = await getHydratedStore();
   const q = request.nextUrl.searchParams.get('q')?.trim();
   const limit = Math.min(Number(request.nextUrl.searchParams.get('limit') ?? 10), 50);
 

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 import { getEngagementScores } from '@/lib/engagement';
 
 export async function GET() {
-  const scores = getEngagementScores();
+  const dataStore = await getHydratedStore();
+  const scores = await getEngagementScores();
   const scoreMap = new Map(scores.map(s => [s.nricHash, s]));
 
   const profiles = dataStore.profiles;

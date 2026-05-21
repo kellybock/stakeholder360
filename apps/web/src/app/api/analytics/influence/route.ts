@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 
 const LEVEL_MAP: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
 
 export async function GET(request: NextRequest) {
+  const dataStore = await getHydratedStore();
   const agency = request.nextUrl.searchParams.get('agency') ?? '';
   const aoi = request.nextUrl.searchParams.get('aoi') ?? '';
 

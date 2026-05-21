@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 
 export async function GET(request: NextRequest) {
+  const dataStore = await getHydratedStore();
   const { searchParams } = request.nextUrl;
   const page = parseInt(searchParams.get('page') ?? '1');
   const limit = parseInt(searchParams.get('limit') ?? '20');

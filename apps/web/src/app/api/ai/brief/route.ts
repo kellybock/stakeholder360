@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
 import { createLLMProvider } from '@youth360/ai';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 import { getProviderApiKey } from '@/lib/ai-settings';
 
 export async function POST(request: NextRequest) {
+  const dataStore = await getHydratedStore();
   const { stakeholderId, provider: providerName = 'claude' } = await request.json();
 
   if (!stakeholderId) {

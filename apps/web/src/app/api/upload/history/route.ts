@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 
 export async function GET() {
+  const dataStore = await getHydratedStore();
   return NextResponse.json({ history: dataStore.uploadHistory });
 }

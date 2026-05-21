@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 import { getEngagementScores } from '@/lib/engagement';
 
 export async function GET() {
+  const dataStore = await getHydratedStore();
   const profiles = dataStore.profiles;
   const interactions = dataStore.interactions;
   const events = dataStore.events;
@@ -88,7 +89,7 @@ export async function GET() {
     });
   recentActivity.sort((a, b) => b.date.localeCompare(a.date));
 
-  const engagementScores = getEngagementScores();
+  const engagementScores = await getEngagementScores();
   const avgEngagement = engagementScores.length > 0
     ? Math.round(engagementScores.reduce((sum, s) => sum + s.totalScore, 0) / engagementScores.length)
     : 0;

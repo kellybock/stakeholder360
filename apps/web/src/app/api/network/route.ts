@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dataStore } from '@/lib/store';
+import { getHydratedStore } from '@/lib/store';
 import { getEngagementScores } from '@/lib/engagement';
 
 type GraphNode = {
@@ -20,12 +20,13 @@ type GraphEdge = {
 };
 
 export async function GET(request: NextRequest) {
+  const dataStore = await getHydratedStore();
   const agencyFilter = request.nextUrl.searchParams.get('agency') ?? '';
   const aoiFilter = request.nextUrl.searchParams.get('aoi') ?? '';
   const edgeType = request.nextUrl.searchParams.get('edgeType') ?? '';
   const minConnections = Number(request.nextUrl.searchParams.get('minConnections') ?? 1);
 
-  const scores = getEngagementScores();
+  const scores = await getEngagementScores();
   const scoreMap = new Map(scores.map(s => [s.stakeholderId, s]));
 
   let profiles = dataStore.profiles;
