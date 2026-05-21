@@ -1,6 +1,7 @@
 import { hashNric, maskNric } from '@youth360/shared';
 import { db } from '@youth360/db';
 import * as schema from '@youth360/db';
+import { getDataMode } from './data-mode';
 
 export interface StoredProfile {
   id: string;
@@ -383,6 +384,20 @@ class DataStore {
     return record;
   }
 
+  reset(): void {
+    this.profiles = [];
+    this.relationshipManagers = [];
+    this.areasOfInterest = [];
+    this.interactions = [];
+    this.events = [];
+    this.awards = [];
+    this.community = [];
+    this.overseasRepresentation = [];
+    this.uploadHistory = [];
+    this._hydrated = false;
+    this._hydrating = null;
+  }
+
   private _hydrated = false;
   private _hydrating: Promise<void> | null = null;
 
@@ -540,6 +555,8 @@ if (!globalStore.__dataStore) {
 export const dataStore = globalStore.__dataStore;
 
 export async function getHydratedStore(): Promise<DataStore> {
-  await dataStore.hydrate();
+  if (getDataMode() === 'test') {
+    await dataStore.hydrate();
+  }
   return dataStore;
 }

@@ -109,6 +109,10 @@ function computeChurnRisk(daysSinceContact: number | null, frequencyScore: numbe
 
 const globalScores = globalThis as unknown as { __engagementScores?: EngagementScore[] };
 
+export function clearEngagementCache(): void {
+  globalScores.__engagementScores = undefined;
+}
+
 export async function calculateAllScores(): Promise<EngagementScore[]> {
   dataStore = await getHydratedStore();
   const now = new Date();

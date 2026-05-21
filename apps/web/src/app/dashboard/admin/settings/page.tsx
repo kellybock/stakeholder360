@@ -72,7 +72,13 @@ const AVAILABLE_SCOPES = [
 ];
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<'ai' | 'apikeys'>('ai');
+  const [tab, setTab] = useState<'data' | 'ai' | 'apikeys'>('data');
+
+  // Data Mode state
+  const [dataMode, setDataMode] = useState<'test' | 'live'>('test');
+  const [dataModeLoading, setDataModeLoading] = useState(true);
+  const [dataModeSwitching, setDataModeSwitching] = useState(false);
+  const [dataModeInfo, setDataModeInfo] = useState<{ lastChangedAt: string | null; lastChangedBy: string | null }>({ lastChangedAt: null, lastChangedBy: null });
 
   // AI Settings state
   const [aiConfig, setAiConfig] = useState<AIConfig | null>(null);
@@ -96,6 +102,18 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [revokeConfirm, setRevokeConfirm] = useState<ApiKey | null>(null);
 
+  const fetchDataMode = useCallback(() => {
+    setDataModeLoading(true);
+    fetch('/api/admin/data-mode')
+      .then(r => r.json())
+      .then(d => {
+        setDataMode(d.mode);
+        setDataModeInfo({ lastChangedAt: d.lastChangedAt, lastChangedBy: d.lastChangedBy });
+      })
+      .catch(() => {})
+      .finally(() => setDataModeLoading(false));
+  }, []);
+
   const fetchAI = useCallback(() => {
     setAiLoading(true);
     fetch('/api/admin/ai-settings')
@@ -114,7 +132,24 @@ export default function SettingsPage() {
       .finally(() => setKeysLoading(false));
   }, []);
 
-  useEffect(() => { fetchAI(); fetchKeys(); }, [fetchAI, fetchKeys]);
+  useEffect(() => { fetchDataMode(); fetchAI(); fetchKeys(); }, [fetchDataMode, fetchAI, fetchKeys]);
+
+  async function handleDataModeToggle(newMode: 'test' | 'live') {
+    if (newMode === dataMode || dataModeSwitching) return;
+    setDataModeSwitching(true);
+    try {
+      await fetch('/api/admin/data-mode', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode }),
+      });
+      setDataMode(newMode);
+      setAiSuccess(`Switched to ${newMode === 'test' ? 'Test' : 'Live'} Data mode`);
+      setTimeout(() => setAiSuccess(''), 3000);
+      fetchDataMode();
+    } catch {}
+    setDataModeSwitching(false);
+  }
 
   async function saveAIKey(provider: string) {
     setAiSaving(true);
@@ -230,7 +265,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">Configure AI providers and manage API keys</p>
+        <p className="text-sm text-muted-foreground">Configure data sources, AI providers, and manage API keys</p>
       </div>
 
       {/* Success banner */}
@@ -256,7 +291,13 @@ export default function SettingsPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="rounded-xl border border-border bg-card p-5">
+          <p className="text-xs font-medium text-muted-foreground">Data Mode</p>
+          <p className={cn('mt-1 text-2xl font-bold', dataMode === 'test' ? 'text-amber-600' : 'text-blue-600')}>
+            {dataMode === 'test' ? 'Test' : 'Live'}
+          </p>
+        </div>
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-xs font-medium text-muted-foreground">AI Providers</p>
           <p className="mt-1 text-2xl font-bold">{enabledProviders} <span className="text-sm font-normal text-muted-foreground">/ 3 configured</span></p>
@@ -274,6 +315,7 @@ export default function SettingsPage() {
       {/* Tabs */}
       <div className="flex items-center gap-1 border-b border-border">
         {([
+          { key: 'data' as const, label: 'Data Mode' },
           { key: 'ai' as const, label: 'AI Configuration' },
           { key: 'apikeys' as const, label: 'API Keys' },
         ]).map(t => (
@@ -289,6 +331,102 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
+
+      {/* Data Mode Tab */}
+      {tab === 'data' && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold mb-1">Data Source Mode</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Choose whether the dashboard shows seeded test data from the database or only data uploaded by your team.
+            </p>
+
+            {dataModeLoading ? (
+              <div className="flex h-24 items-center justify-center">
+                <svg className="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleDataModeToggle('test')}
+                  disabled={dataModeSwitching}
+                  className={cn(
+                    'flex-1 rounded-xl border-2 p-4 text-left transition-colors',
+                    dataMode === 'test' ? 'border-amber-500 bg-amber-50' : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="h-5 w-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <ellipse cx="12" cy="5" rx="9" ry="3" />
+                      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                    <span className="text-sm font-semibold">Test Dataset</span>
+                    {dataMode === 'test' && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pre-seeded demo data from PostgreSQL — 44 profiles, 158 events, 132 interactions, and more. Ideal for demonstrations and testing.
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => handleDataModeToggle('live')}
+                  disabled={dataModeSwitching}
+                  className={cn(
+                    'flex-1 rounded-xl border-2 p-4 text-left transition-colors',
+                    dataMode === 'live' ? 'border-blue-500 bg-blue-50' : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span className="text-sm font-semibold">Live Dataset</span>
+                    {dataMode === 'live' && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Only data uploaded through the portal by your team. Dashboard starts empty until you upload stakeholder data.
+                  </p>
+                </button>
+              </div>
+            )}
+
+            {dataModeSwitching && (
+              <p className="mt-3 text-xs text-amber-600 font-medium">Switching data mode...</p>
+            )}
+            {dataModeInfo.lastChangedAt && (
+              <p className="mt-3 text-[10px] text-muted-foreground">
+                Last changed {new Date(dataModeInfo.lastChangedAt).toLocaleString()}
+                {dataModeInfo.lastChangedBy ? ` by ${dataModeInfo.lastChangedBy}` : ''}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h3 className="text-sm font-semibold text-amber-800 mb-1">Important</h3>
+            <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
+              <li>Switching modes clears all in-memory data and resets dashboard analytics.</li>
+              <li>In <span className="font-semibold">Live Data</span> mode, the dashboard starts empty until you upload data.</li>
+              <li>Data uploaded in one mode is not preserved when switching to the other mode.</li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* AI Configuration Tab */}
       {tab === 'ai' && (
