@@ -8,6 +8,10 @@ const SESSION_SECRET = new TextEncoder().encode(
 
 const PUBLIC_PATHS = ['/', '/login', '/api/health', '/api/auth/login'];
 
+function isAdminPath(pathname: string): boolean {
+  return pathname.startsWith('/dashboard/admin') || pathname.startsWith('/api/admin');
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -25,7 +29,15 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, SESSION_SECRET);
+    const { payload } = await jwtVerify(token, SESSION_SECRET);
+
+    if (isAdminPath(pathname) && payload.role !== 'admin') {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
     return NextResponse.next();
   } catch {
     if (pathname.startsWith('/api/')) {

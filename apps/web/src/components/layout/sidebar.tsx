@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useSession } from '@/components/session-provider';
 
 const NAV_ITEMS = [
   {
@@ -65,6 +66,11 @@ const ICONS: Record<string, React.ReactNode> = {
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const session = useSession();
+
+  const visibleSections = session?.role === 'admin'
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter(s => s.section !== 'Admin');
 
   return (
     <>
@@ -79,7 +85,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAV_ITEMS.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.section} className="mb-6">
             <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-fg/40">
               {section.section}

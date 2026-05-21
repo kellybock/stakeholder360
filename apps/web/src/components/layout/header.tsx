@@ -1,26 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface UserInfo {
-  fullName: string;
-  agency: string;
-  role: string;
-  email: string;
-}
+import { useSession } from '@/components/session-provider';
 
 export function Header({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const router = useRouter();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const user = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/auth/session')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => data && setUser(data.user))
-      .catch(() => {});
-  }, []);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
