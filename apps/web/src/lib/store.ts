@@ -1,5 +1,5 @@
 import { hashNric, maskNric } from '@youth360/shared';
-import { db } from '@youth360/db';
+import { getDb } from '@youth360/db';
 import * as schema from '@youth360/db';
 import { getDataMode } from './data-mode';
 
@@ -31,7 +31,7 @@ export interface StoredProfile {
 
 export interface StoredRM {
   id: string;
-  rmId: string | null;
+  nricHash: string;
   name: string;
   email: string;
   agency: string;
@@ -40,7 +40,6 @@ export interface StoredRM {
 export interface StoredAOI {
   id: string;
   nricHash: string;
-  aoiId: string | null;
   areaOfInterest: string;
   alignment: string | null;
   levelOfInterest: string | null;
@@ -184,12 +183,15 @@ class DataStore {
     let inserted = 0, updated = 0, failed = 0;
     for (const row of rows) {
       try {
+        const profileId = String(row['ID'] ?? '').trim();
+        if (!profileId) { failed++; continue; }
+        const nricH = hashNric(profileId.toUpperCase());
         const email = String(row['Relationship Manager Email'] ?? '').trim();
         if (!email) { failed++; continue; }
-        const existing = this.relationshipManagers.find(r => r.email === email);
+        const existing = this.relationshipManagers.find(r => r.nricHash === nricH && r.email === email);
         const rm: StoredRM = {
           id: existing?.id ?? this.nextId(),
-          rmId: String(row['RM ID'] ?? existing?.rmId ?? '') || null,
+          nricHash: nricH,
           name: String(row['Relationship Manager'] ?? ''),
           email,
           agency: String(row['Agency'] ?? ''),
@@ -211,16 +213,15 @@ class DataStore {
     let inserted = 0, updated = 0, failed = 0;
     for (const row of rows) {
       try {
-        const nric = String(row['Full NRIC'] ?? '').toUpperCase().trim();
-        if (!nric) { failed++; continue; }
-        const nricH = hashNric(nric);
+        const profileId = String(row['ID'] ?? '').toUpperCase().trim();
+        if (!profileId) { failed++; continue; }
+        const nricH = hashNric(profileId);
         const aoi = String(row['Area of Interest'] ?? '');
         const agency = String(row['Agency'] ?? '') || null;
         const existing = this.areasOfInterest.find(a => a.nricHash === nricH && a.areaOfInterest === aoi && a.agency === agency);
         const record: StoredAOI = {
           id: existing?.id ?? this.nextId(),
           nricHash: nricH,
-          aoiId: String(row['AOI ID'] ?? '') || null,
           areaOfInterest: aoi,
           alignment: String(row['Alignment'] ?? '') || null,
           levelOfInterest: String(row['Level of Interest'] ?? '') || null,
@@ -399,17 +400,24 @@ class DataStore {
   }
 
   private _hydrated = false;
+  private _hydratedMode: string | null = null;
   private _hydrating: Promise<void> | null = null;
 
   async hydrate(): Promise<void> {
-    if (this._hydrated) return;
+    const mode = getDataMode();
+    if (this._hydrated && this._hydratedMode === mode) return;
     if (this._hydrating) return this._hydrating;
+    if (this._hydrated && this._hydratedMode !== mode) {
+      this.reset();
+    }
     this._hydrating = this._doHydrate();
     return this._hydrating;
   }
 
   private async _doHydrate(): Promise<void> {
     try {
+      const mode = getDataMode();
+      const db = getDb(mode);
       const dbProfiles = await db.select().from(schema.profiles);
       if (dbProfiles.length === 0) {
         this._hydrated = true;
@@ -447,10 +455,10 @@ class DataStore {
 
       const dbRMs = await db.select().from(schema.relationshipManagers);
       for (const rm of dbRMs) {
-        if (this.relationshipManagers.find(e => e.email === rm.email)) continue;
+        if (this.relationshipManagers.find(e => e.nricHash === rm.nricHash && e.email === rm.email)) continue;
         this.relationshipManagers.push({
           id: rm.id,
-          rmId: rm.rmId,
+          nricHash: rm.nricHash ?? '',
           name: rm.name,
           email: rm.email,
           agency: rm.agency,
@@ -462,7 +470,6 @@ class DataStore {
         this.areasOfInterest.push({
           id: a.id,
           nricHash: a.nricHash,
-          aoiId: a.aoiId,
           areaOfInterest: a.areaOfInterest,
           alignment: a.alignment,
           levelOfInterest: a.levelOfInterest,
@@ -539,11 +546,12 @@ class DataStore {
         });
       }
 
-      console.log(`[DataStore] Hydrated from DB: ${this.profiles.length} profiles, ${this.interactions.length} interactions, ${this.events.length} events`);
+      console.log(`[DataStore] Hydrated from DB (${getDataMode()} schema): ${this.profiles.length} profiles, ${this.interactions.length} interactions, ${this.events.length} events`);
     } catch (err) {
       console.error('[DataStore] DB hydration failed (store will remain empty):', err);
     }
     this._hydrated = true;
+    this._hydratedMode = getDataMode();
   }
 }
 
@@ -555,8 +563,6 @@ if (!globalStore.__dataStore) {
 export const dataStore = globalStore.__dataStore;
 
 export async function getHydratedStore(): Promise<DataStore> {
-  if (getDataMode() === 'test') {
-    await dataStore.hydrate();
-  }
+  await dataStore.hydrate();
   return dataStore;
 }

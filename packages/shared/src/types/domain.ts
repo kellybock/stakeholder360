@@ -84,7 +84,6 @@ export interface OverseasRecord {
 
 export interface AOIRecord {
   id: string;
-  aoiId: string | null;
   areaOfInterest: string;
   alignment: string | null;
   levelOfInterest: string | null;
@@ -94,7 +93,6 @@ export interface AOIRecord {
 
 export interface RMRecord {
   id: string;
-  rmId: string | null;
   name: string;
   email: string;
   agency: string;

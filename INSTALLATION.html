@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Youth360 Installation Guide</title>
+<style>
+:root {
+  --primary: #1e40af;
+  --primary-light: #dbeafe;
+  --accent: #059669;
+  --accent-light: #d1fae5;
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --code-bg: #1e293b;
+  --code-text: #e2e8f0;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+}
+
+nav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 2rem 1.25rem;
+}
+
+nav .logo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+nav ul {
+  list-style: none;
+}
+
+nav ul li {
+  margin-bottom: 0.25rem;
+}
+
+nav ul li a {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+nav ul li a:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+main {
+  max-width: 900px;
+  padding: 3rem 4rem;
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+h1 + p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-bottom: 2.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary-light);
+}
+
+h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.9rem;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+th {
+  background: var(--primary);
+  color: white;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:nth-child(even) {
+  background: var(--bg);
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85em;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+.architecture {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  margin: 1rem 0 1.5rem;
+}
+
+.note {
+  background: var(--warning-bg);
+  border-left: 4px solid var(--warning);
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+.note strong {
+  color: var(--warning);
+}
+
+.important {
+  background: #fee2e2;
+  border-left: 4px solid #dc2626;
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+.important strong {
+  color: #dc2626;
+}
+
+.success {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent);
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.9rem;
+}
+
+ol, ul {
+  margin: 0.5rem 0 1.5rem 1.5rem;
+}
+
+li {
+  margin-bottom: 0.4rem;
+}
+
+.step-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.step {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+}
+
+.step-number {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 1.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  nav {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  main {
+    padding: 2rem 1.5rem;
+  }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div class="logo">Youth360</div>
+  <ul>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#architecture">Architecture Overview</a></li>
+    <li><a href="#linux">Option A: Linux EC2</a></li>
+    <li><a href="#windows">Option B: Windows Server EC2</a></li>
+    <li><a href="#post-installation">Post-Installation</a></li>
+    <li><a href="#configuration">Configuration</a></li>
+    <li><a href="#database">Database Management</a></li>
+    <li><a href="#ssl">SSL Certificate Management</a></li>
+    <li><a href="#updating">Updating the Application</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+    <li><a href="#security">Security Recommendations</a></li>
+  </ul>
+</nav>
+
+<main>
+<h1>Youth360 Installation Guide</h1>
+<p>Complete guide for deploying Youth360 on AWS EC2 (Linux or Windows Server) using Docker.</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<h3>AWS Resources</h3>
+<table>
+  <tr><th>Resource</th><th>Specification</th></tr>
+  <tr><td>EC2 Instance (Linux)</td><td>Ubuntu 22.04+ LTS, t3.small or larger</td></tr>
+  <tr><td>EC2 Instance (Windows)</td><td>Windows Server 2022, t3.medium or larger</td></tr>
+  <tr><td>Storage</td><td>20 GB+ EBS (gp3 recommended)</td></tr>
+  <tr><td>Security Group</td><td>Inbound ports: 22/3389 (SSH/RDP), 80 (HTTP), 443 (HTTPS)</td></tr>
+</table>
+
+<h3>Domain (Optional)</h3>
+<p>A domain name pointed to your EC2 public IP is required for Let&rsquo;s Encrypt SSL. Without a domain, the setup uses a self-signed certificate.</p>
+
+<hr>
+
+<h2 id="architecture">Architecture Overview</h2>
+
+<div class="architecture">
+                ┌─────────────────────────────────────────┐
+                │              EC2 Instance                │
+                │                                         │
+  HTTPS :443 ──┤──► nginx (reverse proxy + SSL)          │
+  HTTP  :80  ──┤──► nginx (redirects to HTTPS)           │
+                │         │                               │
+                │         ▼                               │
+                │    app (Next.js :3000)                  │
+                │         │                               │
+                │         ├──► PostgreSQL :5432           │
+                │         └──► Redis :6379                │
+                │                                         │
+                └─────────────────────────────────────────┘
+</div>
+
+<p>All services run as Docker containers orchestrated by Docker Compose.</p>
+
+<table>
+  <tr><th>Container</th><th>Image</th><th>Purpose</th></tr>
+  <tr><td>youth360-app</td><td>Custom (Dockerfile)</td><td>Next.js application server</td></tr>
+  <tr><td>youth360-db</td><td>pgvector/pgvector:pg16</td><td>PostgreSQL with vector extension</td></tr>
+  <tr><td>youth360-redis</td><td>redis:7-alpine</td><td>Session cache and pub/sub</td></tr>
+  <tr><td>youth360-nginx</td><td>nginx:alpine</td><td>HTTPS termination and reverse proxy</td></tr>
+  <tr><td>youth360-certbot</td><td>certbot/certbot</td><td>Automatic SSL certificate renewal</td></tr>
+</table>
+
+<hr>
+
+<h2 id="linux">Option A: Linux EC2 (Ubuntu)</h2>
+
+<h3>Step 1: Launch EC2 Instance</h3>
+<ol>
+  <li>Go to AWS Console &gt; EC2 &gt; Launch Instance</li>
+  <li>Select <strong>Ubuntu Server 22.04 LTS</strong> AMI</li>
+  <li>Choose <strong>t3.small</strong> or larger</li>
+  <li>Configure Security Group:
+    <ul>
+      <li>SSH (22) from your IP</li>
+      <li>HTTP (80) from 0.0.0.0/0</li>
+      <li>HTTPS (443) from 0.0.0.0/0</li>
+    </ul>
+  </li>
+  <li>Launch and connect via SSH</li>
+</ol>
+
+<h3>Step 2: Clone Repository</h3>
+<pre><code>sudo apt-get update && sudo apt-get install -y git
+git clone &lt;your-repo-url&gt; youth360
+cd youth360</code></pre>
+
+<h3>Step 3: Run Setup Script</h3>
+<p><strong>With a domain (Let&rsquo;s Encrypt SSL):</strong></p>
+<pre><code>./deploy/setup-ec2.sh youth360.example.com admin@example.com</code></pre>
+
+<p><strong>Without a domain (self-signed SSL):</strong></p>
+<pre><code>./deploy/setup-ec2.sh</code></pre>
+
+<p>The script will:</p>
+<ul>
+  <li>Install Docker and Docker Compose</li>
+  <li>Generate a <code>.env</code> file with secure random secrets</li>
+  <li>Obtain or generate SSL certificates</li>
+  <li>Build the application container</li>
+  <li>Start all services</li>
+</ul>
+
+<h3>Step 4: Verify</h3>
+<pre><code>docker compose -f docker-compose.prod.yml ps</code></pre>
+<p>All services should show &ldquo;healthy&rdquo; or &ldquo;running&rdquo; status.</p>
+
+<hr>
+
+<h2 id="windows">Option B: Windows Server EC2</h2>
+
+<h3>Step 1: Launch EC2 Instance</h3>
+<ol>
+  <li>Go to AWS Console &gt; EC2 &gt; Launch Instance</li>
+  <li>Select <strong>Windows Server 2022 Base</strong> AMI</li>
+  <li>Choose <strong>t3.medium</strong> or larger (Hyper-V requires more resources)</li>
+  <li>Configure Security Group:
+    <ul>
+      <li>RDP (3389) from your IP</li>
+      <li>HTTP (80) from 0.0.0.0/0</li>
+      <li>HTTPS (443) from 0.0.0.0/0</li>
+    </ul>
+  </li>
+  <li>Launch and connect via RDP</li>
+</ol>
+
+<h3>Step 2: Clone Repository</h3>
+<p>Open PowerShell as Administrator:</p>
+<pre><code># Install Git if not present
+winget install Git.Git
+
+# Clone
+git clone &lt;your-repo-url&gt; C:\youth360
+cd C:\youth360</code></pre>
+
+<h3>Step 3: Run Setup Script</h3>
+<p><strong>With a domain (Let&rsquo;s Encrypt SSL):</strong></p>
+<pre><code>.\deploy\setup-windows.ps1 -Domain "youth360.example.com" -Email "admin@example.com"</code></pre>
+
+<p><strong>Without a domain (self-signed SSL):</strong></p>
+<pre><code>.\deploy\setup-windows.ps1</code></pre>
+
+<div class="note">
+  <strong>Note:</strong> On first run, the script installs Docker and enables Hyper-V/WSL2. This requires a server restart. After restart, run the script again to complete the deployment.
+</div>
+
+<h3>Step 4: Verify</h3>
+<pre><code>docker compose -f docker-compose.prod.yml ps</code></pre>
+
+<hr>
+
+<h2 id="post-installation">Post-Installation</h2>
+
+<h3>Default Login</h3>
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>URL</td><td>https://your-domain-or-ip</td></tr>
+  <tr><td>Email</td><td>admin@youth360.gov.sg</td></tr>
+  <tr><td>Password</td><td>demo1234</td></tr>
+</table>
+
+<div class="important">
+  <strong>Important:</strong> Change the default password after first login via Admin &gt; User Management.
+</div>
+
+<h3>Seed Test Data</h3>
+<p>To populate the test database with sample stakeholder data:</p>
+<pre><code># Linux
+docker compose -f docker-compose.prod.yml exec app node -e "require('./packages/db/src/seed')"
+
+# Or enter the container directly
+docker compose -f docker-compose.prod.yml exec app sh</code></pre>
+
+<h3>Switch Between Test and Live Data</h3>
+<p>In the app, go to <strong>Admin &gt; Settings</strong> and toggle between &ldquo;Test&rdquo; and &ldquo;Live&rdquo; data modes. Each mode reads from a separate PostgreSQL schema:</p>
+<ul>
+  <li><strong>Test mode</strong> &rarr; <code>test</code> schema (sample/seed data)</li>
+  <li><strong>Live mode</strong> &rarr; <code>public</code> schema (production data)</li>
+</ul>
+
+<hr>
+
+<h2 id="configuration">Configuration</h2>
+
+<h3>Environment Variables</h3>
+<p>All configuration is in the <code>.env</code> file at the project root. This file is generated by the setup script with secure defaults.</p>
+
+<table>
+  <tr><th>Variable</th><th>Description</th><th>Required</th></tr>
+  <tr><td><code>DB_PASSWORD</code></td><td>PostgreSQL password</td><td>Yes (auto-generated)</td></tr>
+  <tr><td><code>SESSION_SECRET</code></td><td>Cookie signing secret</td><td>Yes (auto-generated)</td></tr>
+  <tr><td><code>NRIC_ENCRYPTION_KEY</code></td><td>AES key for NRIC encryption (32 hex chars)</td><td>Yes (auto-generated)</td></tr>
+  <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Anthropic Claude API key</td><td>No (enables AI features)</td></tr>
+  <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI API key</td><td>No (enables AI features)</td></tr>
+  <tr><td><code>GOOGLE_AI_API_KEY</code></td><td>Google Gemini API key</td><td>No (enables AI features)</td></tr>
+  <tr><td><code>DOMAIN</code></td><td>Your domain name</td><td>No (for Let&rsquo;s Encrypt)</td></tr>
+  <tr><td><code>EMAIL</code></td><td>Admin email for Let&rsquo;s Encrypt</td><td>No</td></tr>
+</table>
+
+<h3>Enabling AI Features</h3>
+<p>AI features (chat assistant, meeting brief generation) are disabled by default. To enable:</p>
+<ol>
+  <li>Edit <code>.env</code> and add at least one API key:
+    <pre><code>ANTHROPIC_API_KEY=sk-ant-...</code></pre>
+  </li>
+  <li>Restart the app container:
+    <pre><code>docker compose -f docker-compose.prod.yml restart app</code></pre>
+  </li>
+</ol>
+
+<hr>
+
+<h2 id="database">Database Management</h2>
+
+<h3>Access PostgreSQL Shell</h3>
+<pre><code>docker compose -f docker-compose.prod.yml exec postgres psql -U youth360</code></pre>
+
+<h3>Backup Database</h3>
+<pre><code>docker compose -f docker-compose.prod.yml exec postgres \
+  pg_dump -U youth360 --format=custom youth360 > backup_$(date +%Y%m%d).dump</code></pre>
+
+<h3>Restore Database</h3>
+<pre><code>docker compose -f docker-compose.prod.yml exec -i postgres \
+  pg_restore -U youth360 -d youth360 --clean < backup_20260524.dump</code></pre>
+
+<h3>Run Migrations</h3>
+<pre><code>docker compose -f docker-compose.prod.yml exec app \
+  node -e "const { db } = require('@youth360/db'); /* migration logic */"</code></pre>
+
+<hr>
+
+<h2 id="ssl">SSL Certificate Management</h2>
+
+<h3>Automatic Renewal</h3>
+<p>The certbot container automatically renews certificates every 12 hours (only acts when within 30 days of expiry). No manual intervention needed.</p>
+
+<h3>Manual Renewal</h3>
+<pre><code>docker compose -f docker-compose.prod.yml run --rm certbot renew
+docker compose -f docker-compose.prod.yml restart nginx</code></pre>
+
+<h3>Switch from Self-Signed to Let&rsquo;s Encrypt</h3>
+<p>If you initially deployed without a domain and later add one:</p>
+<pre><code># Update .env
+DOMAIN=youth360.example.com
+EMAIL=admin@example.com
+
+# Remove old certs
+rm -rf deploy/certbot/conf/live/youth360
+
+# Get new cert
+docker compose -f docker-compose.prod.yml run --rm certbot certonly \
+  --webroot --webroot-path=/var/www/certbot \
+  --email admin@example.com --agree-tos --no-eff-email \
+  -d youth360.example.com
+
+# Restart nginx
+docker compose -f docker-compose.prod.yml restart nginx</code></pre>
+
+<hr>
+
+<h2 id="updating">Updating the Application</h2>
+
+<h3>Pull Latest Code and Rebuild</h3>
+<pre><code>git pull origin main
+docker compose -f docker-compose.prod.yml build app
+docker compose -f docker-compose.prod.yml up -d app</code></pre>
+
+<h3>Full Restart (all services)</h3>
+<pre><code>docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d</code></pre>
+
+<hr>
+
+<h2 id="troubleshooting">Troubleshooting</h2>
+
+<h3>View Logs</h3>
+<pre><code># All services
+docker compose -f docker-compose.prod.yml logs -f
+
+# Specific service
+docker compose -f docker-compose.prod.yml logs -f app
+docker compose -f docker-compose.prod.yml logs -f postgres
+docker compose -f docker-compose.prod.yml logs -f nginx</code></pre>
+
+<h3>Common Issues</h3>
+
+<h4>App container won&rsquo;t start</h4>
+<pre><code>docker compose -f docker-compose.prod.yml logs app</code></pre>
+<p>Likely causes:</p>
+<ul>
+  <li>PostgreSQL not ready yet (check health status)</li>
+  <li>Missing environment variable in <code>.env</code></li>
+  <li>Build failed (re-run <code>docker compose -f docker-compose.prod.yml build app</code>)</li>
+</ul>
+
+<h4>Database connection refused</h4>
+<pre><code># Check if PostgreSQL is healthy
+docker compose -f docker-compose.prod.yml ps postgres
+
+# Check PostgreSQL logs
+docker compose -f docker-compose.prod.yml logs postgres</code></pre>
+
+<h4>SSL/HTTPS not working</h4>
+<pre><code># Check nginx config
+docker compose -f docker-compose.prod.yml exec nginx nginx -t
+
+# Check certificate files exist
+ls deploy/certbot/conf/live/youth360/</code></pre>
+
+<h4>Port already in use</h4>
+<pre><code># Find what's using port 80/443
+sudo lsof -i :80
+sudo lsof -i :443
+
+# Or on Windows
+netstat -ano | findstr ":80"</code></pre>
+
+<h4>Windows: Docker not starting after restart</h4>
+<pre><code># Start Docker service manually
+Start-Service docker
+
+# Verify
+docker info</code></pre>
+
+<h4>Insufficient disk space</h4>
+<pre><code># Clean Docker resources
+docker system prune -a --volumes</code></pre>
+
+<h3>Health Checks</h3>
+<pre><code># Verify all containers are running
+docker compose -f docker-compose.prod.yml ps
+
+# Test app response
+curl -k https://localhost
+
+# Test database connection
+docker compose -f docker-compose.prod.yml exec postgres pg_isready -U youth360</code></pre>
+
+<hr>
+
+<h2 id="security">Security Recommendations</h2>
+
+<ol>
+  <li><strong>Change default credentials</strong> immediately after deployment</li>
+  <li><strong>Restrict SSH/RDP access</strong> to your IP only in the Security Group</li>
+  <li><strong>Enable AWS CloudWatch</strong> for monitoring and alerts</li>
+  <li><strong>Set up automated backups</strong> using AWS EBS snapshots or scheduled pg_dump</li>
+  <li><strong>Keep Docker images updated</strong> &mdash; periodically run <code>docker compose pull</code> for base images</li>
+  <li><strong>Review <code>.env</code> file permissions</strong> &mdash; ensure only root/admin can read it:
+    <pre><code>chmod 600 .env   # Linux</code></pre>
+  </li>
+</ol>
+
+<hr>
+
+<h2>Support</h2>
+<p>For issues with the deployment, check:</p>
+<ol>
+  <li>Container logs (<code>docker compose logs</code>)</li>
+  <li>AWS EC2 instance system logs (AWS Console &gt; Actions &gt; Monitor &gt; Get System Log)</li>
+  <li>Security Group inbound rules</li>
+  <li>EBS disk space (<code>df -h</code> on Linux, disk management on Windows)</li>
+</ol>
+
+</main>
+</div>
+</body>
+</html>

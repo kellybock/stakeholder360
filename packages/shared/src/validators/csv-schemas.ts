@@ -27,15 +27,14 @@ export const profileRowSchema = z.object({
 });
 
 export const rmRowSchema = z.object({
-  'RM ID': optionalString,
+  'ID': z.string().min(1, 'ID is required'),
   'Relationship Manager': z.string().min(1, 'RM name is required'),
   'Relationship Manager Email': z.string().email('Invalid email'),
   'Agency': z.string().min(1, 'Agency is required'),
 });
 
 export const aoiRowSchema = z.object({
-  'Full NRIC': nricField,
-  'AOI ID': optionalString,
+  'ID': z.string().min(1, 'ID is required'),
   'Area of Interest': z.string().min(1, 'Area of interest is required'),
   'Alignment': optionalString,
   'Level of Interest': optionalString,

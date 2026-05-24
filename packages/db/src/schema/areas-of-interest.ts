@@ -4,7 +4,6 @@ import { profiles } from './profiles';
 export const areasOfInterest = pgTable('areas_of_interest', {
   id: uuid('id').primaryKey().defaultRandom(),
   nricHash: varchar('nric_hash', { length: 64 }).notNull().references(() => profiles.nricHash),
-  aoiId: varchar('aoi_id', { length: 50 }),
   areaOfInterest: varchar('area_of_interest', { length: 255 }).notNull(),
   alignment: varchar('alignment', { length: 255 }),
   levelOfInterest: varchar('level_of_interest', { length: 50 }),

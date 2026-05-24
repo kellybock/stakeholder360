@@ -62,6 +62,7 @@ export default function StakeholderProfilePage({
   const [briefContent, setBriefContent] = useState('');
   const [briefLoading, setBriefLoading] = useState(false);
   const [briefProvider, setBriefProvider] = useState('claude');
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [recommendations, setRecommendations] = useState<{ type: string; priority: string; title: string; description: string }[]>([]);
 
   useEffect(() => {
@@ -78,6 +79,11 @@ export default function StakeholderProfilePage({
       .then(r => r.ok ? r.json() : { recommendations: [] })
       .then(d => setRecommendations(d.recommendations ?? []))
       .catch(() => {});
+
+    fetch('/api/ai/status')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setAiAvailable(d.available); })
+      .catch(() => setAiAvailable(false));
   }, [id]);
 
   if (loading) {
@@ -113,6 +119,14 @@ export default function StakeholderProfilePage({
         crossAgencyCount={data.crossAgencyCount}
         agencies={data.agencies}
         engagement={data.engagement}
+      />
+
+      {/* Engagement Timeline Chart */}
+      <EngagementTimeline
+        interactions={data.interactions}
+        events={data.events}
+        awards={data.awards}
+        community={data.community}
       />
 
       {/* Tabs */}
@@ -193,14 +207,6 @@ export default function StakeholderProfilePage({
           </div>
         </div>
       )}
-
-      {/* Engagement Timeline Chart */}
-      <EngagementTimeline
-        interactions={data.interactions as { meetingDate?: string | null }[]}
-        events={data.events as { startDate?: string | null }[]}
-        awards={data.awards as { year?: number | null }[]}
-        community={data.community as { startDate?: string | null }[]}
-      />
 
       {/* Tab content */}
       <div className="rounded-xl border border-border bg-card p-6">
@@ -393,7 +399,23 @@ export default function StakeholderProfilePage({
           </div>
         )}
 
-        {tab === 'ai' && (
+        {tab === 'ai' && aiAvailable === false && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <svg className="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m-4-6a8 8 0 1116 0c0 3.5-2 5-4 6.5V17a2 2 0 01-2 2h-4a2 2 0 01-2-2v-.5C6 15 4 13.5 4 10z" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-semibold">AI Features Unavailable</h3>
+            <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+              No AI provider API key is configured. Add an API key in{' '}
+              <a href="/dashboard/admin/settings" className="text-primary hover:underline">Admin &gt; API Keys &amp; Settings</a>{' '}
+              to enable brief generation.
+            </p>
+          </div>
+        )}
+
+        {tab === 'ai' && aiAvailable !== false && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>

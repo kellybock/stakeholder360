@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -67,6 +68,14 @@ const ICONS: Record<string, React.ReactNode> = {
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const session = useSession();
+  const [aiAvailable, setAiAvailable] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/ai/status')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setAiAvailable(d.available); })
+      .catch(() => {});
+  }, []);
 
   const visibleSections = session?.role === 'admin'
     ? NAV_ITEMS
@@ -93,20 +102,29 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             {section.items.map((item) => {
               const isActive = pathname === item.href ||
                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
+              const isAiItem = item.href === '/dashboard/ai-chat';
+              const disabled = isAiItem && !aiAvailable;
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
+                  href={disabled ? '#' : item.href}
+                  onClick={(e) => {
+                    if (disabled) { e.preventDefault(); return; }
+                    onNavigate?.();
+                  }}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                    isActive
-                      ? 'bg-sidebar-accent text-white'
-                      : 'text-sidebar-fg/70 hover:bg-sidebar-accent/50 hover:text-white'
+                    disabled
+                      ? 'text-sidebar-fg/30 cursor-not-allowed'
+                      : isActive
+                        ? 'bg-sidebar-accent text-white'
+                        : 'text-sidebar-fg/70 hover:bg-sidebar-accent/50 hover:text-white'
                   )}
+                  title={disabled ? 'No AI API key configured' : undefined}
                 >
                   {ICONS[item.icon]}
                   {item.label}
+                  {disabled && <span className="ml-auto text-[9px] text-sidebar-fg/30">No key</span>}
                 </Link>
               );
             })}

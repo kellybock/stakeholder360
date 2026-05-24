@@ -59,6 +59,7 @@ export default function AIChatPage() {
   const [provider, setProvider] = useState('claude');
   const [selectedModel, setSelectedModel] = useState('');
   const [aiProviders, setAiProviders] = useState<AIProvider[]>(FALLBACK_PROVIDERS);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [stakeholderSearch, setStakeholderSearch] = useState('');
@@ -69,6 +70,13 @@ export default function AIChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const activeConv = conversations.find(c => c.id === activeConvId) ?? null;
+
+  useEffect(() => {
+    fetch('/api/ai/status')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setAiAvailable(d.available); })
+      .catch(() => setAiAvailable(false));
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/ai-settings')
@@ -231,6 +239,26 @@ export default function AIChatPage() {
       e.preventDefault();
       sendMessage();
     }
+  }
+
+  if (aiAvailable === false) {
+    return (
+      <div className="flex h-[calc(100vh-8rem)] flex-col items-center justify-center space-y-4">
+        <div className="rounded-xl border border-border bg-card p-8 text-center max-w-md">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <svg className="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m-4-6a8 8 0 1116 0c0 3.5-2 5-4 6.5V17a2 2 0 01-2 2h-4a2 2 0 01-2-2v-.5C6 15 4 13.5 4 10z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold">AI Features Unavailable</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No AI provider API key is configured. Please add an API key in{' '}
+            <a href="/dashboard/admin/settings" className="text-primary hover:underline">Admin &gt; API Keys &amp; Settings</a>{' '}
+            to enable AI Assistant, brief generation, and other AI features.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

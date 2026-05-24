@@ -1,4 +1,4 @@
-import { db } from '../client';
+import { dbTest as db } from '../client';
 import * as schema from '../schema';
 import { createHash } from 'crypto';
 
@@ -47,15 +47,6 @@ async function seed() {
 
   const [admin, sarah, raj, chenli, ahmad, tanwl] = users;
   const rmUsers = [sarah, raj, chenli, ahmad, tanwl];
-
-  console.log('Seeding relationship managers...');
-  await db.insert(schema.relationshipManagers).values([
-    { rmId: 'RM-001', name: 'Sarah Tan', email: sarah.email, agency: 'NYC', userId: sarah.id },
-    { rmId: 'RM-002', name: 'Raj Kumar', email: raj.email, agency: 'MCCY', userId: raj.id },
-    { rmId: 'RM-003', name: 'Chen Li Hua', email: chenli.email, agency: 'MOE', userId: chenli.id },
-    { rmId: 'RM-004', name: 'Ahmad Ibrahim', email: ahmad.email, agency: 'MSF', userId: ahmad.id },
-    { rmId: 'RM-005', name: 'Tan Wei Lin', email: tanwl.email, agency: 'MINDEF', userId: tanwl.id },
-  ]);
 
   // ─── 50 PROFILES ──────────────────────────────────────────
   // Statuses: Champion (top), Advocate, Active, Nominated, Inactive, Dormant
@@ -144,6 +135,16 @@ async function seed() {
       updatedBy: admin.id,
     }))
   );
+
+  // ─── RELATIONSHIP MANAGERS ─────────────────────────────────
+  console.log('Seeding relationship managers...');
+  await db.insert(schema.relationshipManagers).values([
+    { nricHash: hashes[0], name: 'Sarah Tan', email: sarah.email, agency: 'NYC', userId: sarah.id },
+    { nricHash: hashes[1], name: 'Raj Kumar', email: raj.email, agency: 'MCCY', userId: raj.id },
+    { nricHash: hashes[2], name: 'Chen Li Hua', email: chenli.email, agency: 'MOE', userId: chenli.id },
+    { nricHash: hashes[3], name: 'Ahmad Ibrahim', email: ahmad.email, agency: 'MSF', userId: ahmad.id },
+    { nricHash: hashes[4], name: 'Tan Wei Lin', email: tanwl.email, agency: 'MINDEF', userId: tanwl.id },
+  ]);
 
   // ─── AREAS OF INTEREST ────────────────────────────────────
   console.log('Seeding areas of interest...');

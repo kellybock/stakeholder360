@@ -125,15 +125,16 @@ const rmNames = ['Sarah Tan', 'Ahmad Ibrahim', 'Priya Nair', 'David Lim', 'Rache
   'Hafiz Rashid', 'Anita Singh', 'Brandon Lee', 'Siti Aminah', 'Kenneth Teo'];
 for (let i = 0; i < 15; i++) {
   const agency = AGENCIES[i % 5];
+  const assignedProfile = profiles[i % profiles.length];
   rmRows.push([
-    `RM-${String(i + 1).padStart(3, '0')}`,
+    assignedProfile.nric,
     rmNames[i],
     `${rmNames[i].toLowerCase().replace(/ /g, '.')}@gov.sg`,
     agency,
   ]);
 }
 writeFileSync(join(OUT_DIR, 'relationship-managers.csv'), toCsv(
-  ['RM ID', 'Relationship Manager', 'Relationship Manager Email', 'Agency'],
+  ['ID', 'Relationship Manager', 'Relationship Manager Email', 'Agency'],
   rmRows
 ));
 
@@ -143,7 +144,7 @@ for (const p of profiles) {
   const aois = pickN(AREAS_OF_INTEREST, randInt(1, 3));
   for (const aoi of aois) {
     aoiRows.push([
-      p.nric, `AOI-${aoiRows.length + 1}`, aoi,
+      p.nric, aoi,
       pick(['National', 'Regional', 'Community']),
       pick(['Low', 'Medium', 'High']),
       pick(['Low', 'Medium', 'High']),
@@ -152,7 +153,7 @@ for (const p of profiles) {
   }
 }
 writeFileSync(join(OUT_DIR, 'areas-of-interest.csv'), toCsv(
-  ['Full NRIC', 'AOI ID', 'Area of Interest', 'Alignment', 'Level of Interest', 'Level of Influence', 'Agency'],
+  ['ID', 'Area of Interest', 'Alignment', 'Level of Interest', 'Level of Influence', 'Agency'],
   aoiRows
 ));
 

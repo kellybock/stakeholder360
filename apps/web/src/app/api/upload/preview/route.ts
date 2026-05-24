@@ -41,19 +41,20 @@ export async function POST(request: Request) {
     }
 
     // Check for NRIC-linked tables whether profiles exist
-    if (tableTarget !== 'profiles' && tableTarget !== 'relationship_managers') {
+    if (tableTarget !== 'profiles') {
+      const { hashNric } = await import('@youth360/shared');
+      const usesIdField = tableTarget === 'areas_of_interest' || tableTarget === 'relationship_managers';
       for (let i = 0; i < rows.length; i++) {
-        const nric = rows[i]['Full NRIC'];
-        if (nric) {
-          const { hashNric } = await import('@youth360/shared');
-          const hash = hashNric(String(nric));
+        const identifier = usesIdField ? rows[i]['ID'] : rows[i]['Full NRIC'];
+        if (identifier) {
+          const hash = hashNric(String(identifier).toUpperCase());
           const profileExists = dataStore.profiles.some(p => p.nricHash === hash);
           if (!profileExists) {
             details.push({
               row: i + 1,
-              field: 'Full NRIC',
+              field: usesIdField ? 'ID' : 'Full NRIC',
               level: 'warning',
-              message: `NRIC not found in profiles. Upload profiles first for complete linkage.`,
+              message: `ID not found in profiles. Upload profiles first for complete linkage.`,
             });
             warnRowsSet.add(i + 1);
           }
