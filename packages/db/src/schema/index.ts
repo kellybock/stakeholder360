@@ -11,3 +11,5 @@ export { uploadHistory } from './upload-history';
 export { aiConversations } from './ai-conversations';
 export { engagementScores } from './engagement-scores';
 export { stakeholderEmbeddings } from './stakeholder-embeddings';
+export { linkedinProfiles } from './linkedin-profiles';
+export type { LinkedinEducation, LinkedinExperience, LinkedinPost } from './linkedin-profiles';

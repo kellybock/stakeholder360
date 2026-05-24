@@ -33,6 +33,7 @@ type Stakeholder360 = {
 
 const TABS = [
   { key: 'overview', label: 'Overview' },
+  { key: 'linkedin', label: 'LinkedIn' },
   { key: 'timeline', label: 'Timeline' },
   { key: 'interactions', label: 'Interactions' },
   { key: 'events', label: 'Events' },
@@ -64,6 +65,30 @@ export default function StakeholderProfilePage({
   const [briefProvider, setBriefProvider] = useState('claude');
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [recommendations, setRecommendations] = useState<{ type: string; priority: string; title: string; description: string }[]>([]);
+  type LinkedinEducation = { school: string; degree: string; fieldOfStudy: string; startYear: string; endYear: string };
+  type LinkedinExperience = { title: string; company: string; location: string; startDate: string; endDate: string; description: string };
+  const [linkedinData, setLinkedinData] = useState<{
+    headline: string;
+    summary: string;
+    location: string;
+    education: LinkedinEducation[];
+    experiences: LinkedinExperience[];
+    skills: string[];
+    linkedinUrl: string;
+    updatedAt: string;
+  } | null>(null);
+  const [linkedinLoading, setLinkedinLoading] = useState(false);
+  const [linkedinSaving, setLinkedinSaving] = useState(false);
+  const [linkedinEditing, setLinkedinEditing] = useState(false);
+  const [linkedinForm, setLinkedinForm] = useState({
+    headline: '',
+    summary: '',
+    location: '',
+    linkedinUrl: '',
+    education: [] as LinkedinEducation[],
+    experiences: [] as LinkedinExperience[],
+    skills: '',
+  });
 
   useEffect(() => {
     fetch(`/api/stakeholders/${id}/360`)
@@ -84,6 +109,11 @@ export default function StakeholderProfilePage({
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setAiAvailable(d.available); })
       .catch(() => setAiAvailable(false));
+
+    fetch(`/api/stakeholders/${id}/linkedin`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.data) setLinkedinData(d.data); })
+      .catch(() => {});
   }, [id]);
 
   if (loading) {
@@ -127,6 +157,7 @@ export default function StakeholderProfilePage({
         events={data.events}
         awards={data.awards}
         community={data.community}
+        agencyCount={data.crossAgencyCount}
       />
 
       {/* Tabs */}
@@ -399,6 +430,236 @@ export default function StakeholderProfilePage({
           </div>
         )}
 
+        {tab === 'linkedin' && (
+          <div className="space-y-6">
+            {/* Header with edit/save controls */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">LinkedIn Profile</h3>
+                <p className="text-xs text-muted-foreground">
+                  {linkedinData?.updatedAt ? `Last updated: ${new Date(linkedinData.updatedAt).toLocaleDateString()}` : 'Add education, experience, and skills manually'}
+                </p>
+              </div>
+              {!linkedinEditing ? (
+                <button
+                  onClick={() => {
+                    setLinkedinEditing(true);
+                    setLinkedinForm({
+                      headline: linkedinData?.headline ?? '',
+                      summary: linkedinData?.summary ?? '',
+                      location: linkedinData?.location ?? '',
+                      linkedinUrl: linkedinData?.linkedinUrl ?? (p.linkedinHandle as string ?? ''),
+                      education: linkedinData?.education ?? [],
+                      experiences: linkedinData?.experiences ?? [],
+                      skills: linkedinData?.skills.join(', ') ?? '',
+                    });
+                  }}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  {linkedinData ? 'Edit' : '+ Add Details'}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setLinkedinEditing(false)}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setLinkedinSaving(true);
+                      try {
+                        const res = await fetch(`/api/stakeholders/${id}/linkedin`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            ...linkedinForm,
+                            skills: linkedinForm.skills.split(',').map(s => s.trim()).filter(Boolean),
+                          }),
+                        });
+                        if (res.ok) {
+                          const json = await res.json();
+                          setLinkedinData(json.data);
+                          setLinkedinEditing(false);
+                        }
+                      } finally {
+                        setLinkedinSaving(false);
+                      }
+                    }}
+                    disabled={linkedinSaving}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {linkedinSaving ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Edit Mode */}
+            {linkedinEditing && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Headline / Title</label>
+                    <input type="text" value={linkedinForm.headline} onChange={e => setLinkedinForm(f => ({ ...f, headline: e.target.value }))} placeholder="e.g. Youth Advocate & Community Leader" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Location</label>
+                    <input type="text" value={linkedinForm.location} onChange={e => setLinkedinForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Singapore" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">LinkedIn URL</label>
+                  <input type="text" value={linkedinForm.linkedinUrl} onChange={e => setLinkedinForm(f => ({ ...f, linkedinUrl: e.target.value }))} placeholder="e.g. linkedin.com/in/username" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Summary / About</label>
+                  <textarea value={linkedinForm.summary} onChange={e => setLinkedinForm(f => ({ ...f, summary: e.target.value }))} placeholder="Brief professional summary..." rows={3} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none" />
+                </div>
+
+                {/* Experience section */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-muted-foreground">Experience</label>
+                    <button onClick={() => setLinkedinForm(f => ({ ...f, experiences: [...f.experiences, { title: '', company: '', location: '', startDate: '', endDate: '', description: '' }] }))} className="text-xs text-primary hover:underline">+ Add</button>
+                  </div>
+                  <div className="space-y-3">
+                    {linkedinForm.experiences.map((exp, i) => (
+                      <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="grid grid-cols-2 gap-2 flex-1">
+                            <input type="text" value={exp.title} onChange={e => { const exps = [...linkedinForm.experiences]; exps[i] = { ...exps[i], title: e.target.value }; setLinkedinForm(f => ({ ...f, experiences: exps })); }} placeholder="Job title" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                            <input type="text" value={exp.company} onChange={e => { const exps = [...linkedinForm.experiences]; exps[i] = { ...exps[i], company: e.target.value }; setLinkedinForm(f => ({ ...f, experiences: exps })); }} placeholder="Company" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          </div>
+                          <button onClick={() => setLinkedinForm(f => ({ ...f, experiences: f.experiences.filter((_, j) => j !== i) }))} className="ml-2 text-xs text-red-500 hover:text-red-700">Remove</button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input type="text" value={exp.location} onChange={e => { const exps = [...linkedinForm.experiences]; exps[i] = { ...exps[i], location: e.target.value }; setLinkedinForm(f => ({ ...f, experiences: exps })); }} placeholder="Location" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          <input type="text" value={exp.startDate} onChange={e => { const exps = [...linkedinForm.experiences]; exps[i] = { ...exps[i], startDate: e.target.value }; setLinkedinForm(f => ({ ...f, experiences: exps })); }} placeholder="Start (e.g. 2022-01)" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          <input type="text" value={exp.endDate} onChange={e => { const exps = [...linkedinForm.experiences]; exps[i] = { ...exps[i], endDate: e.target.value }; setLinkedinForm(f => ({ ...f, experiences: exps })); }} placeholder="End (or Present)" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                        </div>
+                        <textarea value={exp.description} onChange={e => { const exps = [...linkedinForm.experiences]; exps[i] = { ...exps[i], description: e.target.value }; setLinkedinForm(f => ({ ...f, experiences: exps })); }} placeholder="Description (optional)" rows={2} className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs resize-none" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Education section */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-muted-foreground">Education</label>
+                    <button onClick={() => setLinkedinForm(f => ({ ...f, education: [...f.education, { school: '', degree: '', fieldOfStudy: '', startYear: '', endYear: '' }] }))} className="text-xs text-primary hover:underline">+ Add</button>
+                  </div>
+                  <div className="space-y-3">
+                    {linkedinForm.education.map((edu, i) => (
+                      <div key={i} className="rounded-lg border border-border p-3 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <input type="text" value={edu.school} onChange={e => { const edus = [...linkedinForm.education]; edus[i] = { ...edus[i], school: e.target.value }; setLinkedinForm(f => ({ ...f, education: edus })); }} placeholder="School / University" className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          <button onClick={() => setLinkedinForm(f => ({ ...f, education: f.education.filter((_, j) => j !== i) }))} className="ml-2 text-xs text-red-500 hover:text-red-700">Remove</button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          <input type="text" value={edu.degree} onChange={e => { const edus = [...linkedinForm.education]; edus[i] = { ...edus[i], degree: e.target.value }; setLinkedinForm(f => ({ ...f, education: edus })); }} placeholder="Degree" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          <input type="text" value={edu.fieldOfStudy} onChange={e => { const edus = [...linkedinForm.education]; edus[i] = { ...edus[i], fieldOfStudy: e.target.value }; setLinkedinForm(f => ({ ...f, education: edus })); }} placeholder="Field of study" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          <input type="text" value={edu.startYear} onChange={e => { const edus = [...linkedinForm.education]; edus[i] = { ...edus[i], startYear: e.target.value }; setLinkedinForm(f => ({ ...f, education: edus })); }} placeholder="Start year" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                          <input type="text" value={edu.endYear} onChange={e => { const edus = [...linkedinForm.education]; edus[i] = { ...edus[i], endYear: e.target.value }; setLinkedinForm(f => ({ ...f, education: edus })); }} placeholder="End year" className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Skills (comma-separated)</label>
+                  <input type="text" value={linkedinForm.skills} onChange={e => setLinkedinForm(f => ({ ...f, skills: e.target.value }))} placeholder="e.g. Public Speaking, Community Engagement, Project Management" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                </div>
+              </div>
+            )}
+
+            {/* View Mode */}
+            {!linkedinEditing && linkedinData && (
+              <>
+                {/* Profile summary */}
+                {(linkedinData.headline || linkedinData.summary || linkedinData.location || linkedinData.linkedinUrl) && (
+                  <div className="rounded-lg border border-border p-4">
+                    {linkedinData.headline && <p className="text-sm font-medium">{linkedinData.headline}</p>}
+                    {linkedinData.location && <p className="mt-0.5 text-xs text-muted-foreground">{linkedinData.location}</p>}
+                    {linkedinData.linkedinUrl && (
+                      <p className="mt-0.5 text-xs text-primary">
+                        <a href={linkedinData.linkedinUrl.startsWith('http') ? linkedinData.linkedinUrl : `https://${linkedinData.linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{linkedinData.linkedinUrl}</a>
+                      </p>
+                    )}
+                    {linkedinData.summary && <p className="mt-2 text-sm text-muted-foreground">{linkedinData.summary}</p>}
+                  </div>
+                )}
+
+                {/* Experience */}
+                {linkedinData.experiences.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Experience</h4>
+                    <div className="space-y-2">
+                      {linkedinData.experiences.map((exp, i) => (
+                        <div key={i} className="rounded-lg border border-border p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium">{exp.title}</p>
+                              <p className="text-xs text-muted-foreground">{exp.company}{exp.location ? ` • ${exp.location}` : ''}</p>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              {exp.startDate || ''} — {exp.endDate || 'Present'}
+                            </span>
+                          </div>
+                          {exp.description && <p className="mt-1.5 text-xs text-muted-foreground line-clamp-3">{exp.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Education */}
+                {linkedinData.education.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Education</h4>
+                    <div className="space-y-2">
+                      {linkedinData.education.map((edu, i) => (
+                        <div key={i} className="rounded-lg border border-border p-3">
+                          <p className="text-sm font-medium">{edu.school}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {[edu.degree, edu.fieldOfStudy].filter(Boolean).join(' in ') || 'Degree not specified'}
+                          </p>
+                          {(edu.startYear || edu.endYear) && (
+                            <p className="text-[10px] text-muted-foreground">{edu.startYear || '?'} — {edu.endYear || 'Present'}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skills */}
+                {linkedinData.skills.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Skills</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {linkedinData.skills.map(skill => (
+                        <span key={skill} className="rounded-full bg-secondary px-2.5 py-0.5 text-xs">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Empty state */}
+            {!linkedinEditing && !linkedinData && !linkedinLoading && (
+              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                No LinkedIn profile data yet. Click &ldquo;+ Add Details&rdquo; to add education, experience, and skills.
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'ai' && aiAvailable === false && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -483,14 +744,18 @@ export default function StakeholderProfilePage({
             {briefContent ? (
               <div className="rounded-lg border border-border bg-background p-4 text-sm prose prose-sm max-w-none dark:prose-invert">
                 {briefContent.split('\n').map((line, i) => {
-                  if (line.startsWith('## ')) return <h2 key={i} className="mt-4 mb-1 text-base font-semibold">{line.slice(3)}</h2>;
-                  if (line.startsWith('### ')) return <h3 key={i} className="mt-3 mb-1 text-sm font-semibold">{line.slice(4)}</h3>;
-                  if (line.startsWith('# ')) return <h1 key={i} className="mt-4 mb-2 text-lg font-bold">{line.slice(2)}</h1>;
-                  if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
-                  if (/^\d+\.\s/.test(line)) return <li key={i} className="ml-4 list-decimal">{line.replace(/^\d+\.\s/, '')}</li>;
+                  const renderInline = (text: string) => {
+                    const parts = text.split(/\*\*(.+?)\*\*/g);
+                    return parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part);
+                  };
+                  if (line.startsWith('## ')) return <h2 key={i} className="mt-4 mb-1 text-base font-semibold">{renderInline(line.slice(3))}</h2>;
+                  if (line.startsWith('### ')) return <h3 key={i} className="mt-3 mb-1 text-sm font-semibold">{renderInline(line.slice(4))}</h3>;
+                  if (line.startsWith('# ')) return <h1 key={i} className="mt-4 mb-2 text-lg font-bold">{renderInline(line.slice(2))}</h1>;
+                  if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc">{renderInline(line.slice(2))}</li>;
+                  if (/^\d+\.\s/.test(line)) return <li key={i} className="ml-4 list-decimal">{renderInline(line.replace(/^\d+\.\s/, ''))}</li>;
                   if (line.startsWith('---')) return <hr key={i} className="my-3" />;
                   if (line.trim() === '') return <br key={i} />;
-                  return <p key={i} className="my-1">{line.replace(/\*\*(.+?)\*\*/g, '$1')}</p>;
+                  return <p key={i} className="my-1">{renderInline(line)}</p>;
                 })}
               </div>
             ) : !briefLoading ? (

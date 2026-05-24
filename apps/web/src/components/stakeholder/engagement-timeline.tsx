@@ -8,6 +8,7 @@ interface EngagementTimelineProps {
   events: { startDate?: string | null; organizerAgency?: string | null; eventTitle?: string | null }[];
   awards: { year?: number | null; awardName?: string | null }[];
   community: { startDate?: string | null; orgGroupName?: string | null; role?: string | null }[];
+  agencyCount?: number;
 }
 
 const AGENCY_COLORS: Record<string, string> = {
@@ -71,7 +72,7 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function EngagementTimeline({ interactions, events, awards, community }: EngagementTimelineProps) {
+export function EngagementTimeline({ interactions, events, awards, community, agencyCount }: EngagementTimelineProps) {
   const [hoveredDot, setHoveredDot] = useState<DotEntry | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -170,23 +171,40 @@ export function EngagementTimeline({ interactions, events, awards, community }: 
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-sm font-semibold">Engagement Timeline</h3>
-          <p className="text-[10px] text-muted-foreground">{totalActivities} activities across {agencies.length} {agencies.length === 1 ? 'agency' : 'agencies'}</p>
+      <h3 className="text-sm font-semibold mb-3">Engagement Timeline</h3>
+
+      {/* Summary stats */}
+      <div className="mb-3 flex gap-4 border-b border-border pb-3">
+        <div className="text-center flex-1">
+          <p className="text-lg font-bold">{totalActivities}</p>
+          <p className="text-[10px] text-muted-foreground">Total Activities</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-[10px]">
-          {Object.entries(TYPE_LABELS).map(([type, label]) => (
-            <span key={type} className="flex items-center gap-1.5">
-              <span className={cn(
-                'inline-block h-2.5 w-2.5 bg-foreground/70',
-                TYPE_SHAPES[type as EntryType],
-                type === 'community' && 'bg-transparent border-foreground/70'
-              )} />
-              {label}
-            </span>
-          ))}
+        <div className="text-center flex-1">
+          <p className="text-lg font-bold">{agencyCount ?? agencies.filter(a => a !== 'Other' && a !== 'Unknown').length}</p>
+          <p className="text-[10px] text-muted-foreground">Agencies</p>
         </div>
+        <div className="text-center flex-1">
+          <p className="text-lg font-bold">
+            {entries.length > 0
+              ? formatDate(entries.sort((a, b) => b.timestamp - a.timestamp)[0].date)
+              : '—'}
+          </p>
+          <p className="text-[10px] text-muted-foreground">Last Activity</p>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex justify-end flex-wrap items-center gap-3 text-[10px] mb-3">
+        {Object.entries(TYPE_LABELS).map(([type, label]) => (
+          <span key={type} className="flex items-center gap-1.5">
+            <span className={cn(
+              'inline-block h-2.5 w-2.5 bg-foreground/70',
+              TYPE_SHAPES[type as EntryType],
+              type === 'community' && 'bg-transparent border-foreground/70'
+            )} />
+            {label}
+          </span>
+        ))}
       </div>
 
       {/* Dot timeline */}
@@ -263,25 +281,6 @@ export function EngagementTimeline({ interactions, events, awards, community }: 
         )}
       </div>
 
-      {/* Summary stats */}
-      <div className="mt-3 flex gap-4 border-t border-border pt-3">
-        <div className="text-center flex-1">
-          <p className="text-lg font-bold">{totalActivities}</p>
-          <p className="text-[10px] text-muted-foreground">Total Activities</p>
-        </div>
-        <div className="text-center flex-1">
-          <p className="text-lg font-bold">{agencies.length}</p>
-          <p className="text-[10px] text-muted-foreground">Agencies</p>
-        </div>
-        <div className="text-center flex-1">
-          <p className="text-lg font-bold">
-            {entries.length > 0
-              ? formatDate(entries.sort((a, b) => b.timestamp - a.timestamp)[0].date)
-              : '—'}
-          </p>
-          <p className="text-[10px] text-muted-foreground">Last Activity</p>
-        </div>
-      </div>
     </div>
   );
 }
