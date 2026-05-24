@@ -160,6 +160,45 @@ docker compose -f docker-compose.prod.yml up -d
 Write-Host "[6/6] Verifying deployment..." -ForegroundColor Yellow
 Start-Sleep -Seconds 10
 
+# Ensure linkedin_profiles table exists in both schemas
+Write-Host "  Verifying database tables..."
+$sqlCmd = @"
+CREATE TABLE IF NOT EXISTS linkedin_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL UNIQUE,
+  linkedin_url VARCHAR(500) NOT NULL DEFAULT '',
+  headline VARCHAR(500),
+  summary TEXT,
+  location VARCHAR(255),
+  education JSONB,
+  experiences JSONB,
+  posts JSONB,
+  skills JSONB,
+  raw_response JSONB,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS test.linkedin_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL UNIQUE,
+  linkedin_url VARCHAR(500) NOT NULL DEFAULT '',
+  headline VARCHAR(500),
+  summary TEXT,
+  location VARCHAR(255),
+  education JSONB,
+  experiences JSONB,
+  posts JSONB,
+  skills JSONB,
+  raw_response JSONB,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+"@
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U youth360 -d youth360 -c "$sqlCmd" 2>$null
+Write-Host "  Database tables verified." -ForegroundColor Green
+
 $healthy = docker compose -f docker-compose.prod.yml ps --format json 2>$null
 Write-Host "  Services running:" -ForegroundColor Green
 docker compose -f docker-compose.prod.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"

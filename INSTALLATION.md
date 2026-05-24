@@ -198,6 +198,17 @@ In the app, go to **Admin > Settings** and toggle between "Test" and "Live" data
 - **Test mode** → `test` schema (sample/seed data)
 - **Live mode** → `public` schema (production data)
 
+### LinkedIn Profile Data
+
+Each stakeholder profile has a **LinkedIn** tab where you can manually enter education, work experience, skills, and LinkedIn URL. This data is stored in the `linkedin_profiles` database table and persists across sessions.
+
+To add LinkedIn data:
+1. Open a stakeholder profile
+2. Click the **LinkedIn** tab
+3. Click **+ Add Details**
+4. Fill in education, experience, and skills
+5. Click **Save**
+
 ---
 
 ## Configuration

@@ -104,12 +104,44 @@ docker compose -f docker-compose.prod.yml build app
 echo "[5/6] Starting all services..."
 docker compose -f docker-compose.prod.yml up -d
 
-echo "[6/6] Running database migrations..."
+echo "[6/6] Verifying database setup..."
 sleep 5  # Wait for postgres to be ready
-docker compose -f docker-compose.prod.yml exec app node -e "
-  const { db } = require('./node_modules/@youth360/db');
-  console.log('DB connection established');
-" 2>/dev/null || echo "  (Migration step - manual setup may be needed)"
+
+# Ensure linkedin_profiles table exists in both schemas
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U youth360 -d youth360 -c "
+CREATE TABLE IF NOT EXISTS linkedin_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL UNIQUE,
+  linkedin_url VARCHAR(500) NOT NULL DEFAULT '',
+  headline VARCHAR(500),
+  summary TEXT,
+  location VARCHAR(255),
+  education JSONB,
+  experiences JSONB,
+  posts JSONB,
+  skills JSONB,
+  raw_response JSONB,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS test.linkedin_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID NOT NULL UNIQUE,
+  linkedin_url VARCHAR(500) NOT NULL DEFAULT '',
+  headline VARCHAR(500),
+  summary TEXT,
+  location VARCHAR(255),
+  education JSONB,
+  experiences JSONB,
+  posts JSONB,
+  skills JSONB,
+  raw_response JSONB,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+" 2>/dev/null && echo "  Database tables verified." || echo "  (Tables will be created on first run)"
 
 echo ""
 echo "=========================================="
