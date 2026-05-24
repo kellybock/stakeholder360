@@ -24,6 +24,7 @@ type GraphEdge = {
   type: string;
   label: string;
   weight: number;
+  labels: { type: string; name: string }[];
 };
 
 type NetworkData = {
@@ -48,6 +49,12 @@ const EDGE_COLORS: Record<string, string> = {
   org: '#f59e0b',
 };
 
+const EDGE_TYPE_LABELS: Record<string, string> = {
+  event: 'Shared Event',
+  aoi: 'Shared AOI',
+  org: 'Same Organisation',
+};
+
 export default function NetworkPage() {
   const [data, setData] = useState<NetworkData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,6 +63,8 @@ export default function NetworkPage() {
   const [minConnections, setMinConnections] = useState(2);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const graphRef = useRef<{ d3Force: (name: string) => { strength: (s: number) => void } | undefined } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [graphWidth, setGraphWidth] = useState(900);
 
   const fetchGraph = useCallback(async () => {
     setLoading(true);
@@ -85,6 +94,17 @@ export default function NetworkPage() {
       if (charge) charge.strength(-120);
     }
   }, [data]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setGraphWidth(el.clientWidth);
+    const observer = new ResizeObserver(() => {
+      setGraphWidth(el.clientWidth);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [selectedNode]);
 
   const graphData = data ? {
     nodes: data.nodes.map(n => ({ ...n })),
@@ -164,9 +184,9 @@ export default function NetworkPage() {
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 overflow-hidden">
         {/* Graph */}
-        <div className="flex-1 rounded-xl border border-border bg-card overflow-hidden" style={{ height: 600 }}>
+        <div ref={containerRef} className="min-w-0 flex-1 rounded-xl border border-border bg-card overflow-hidden" style={{ height: 600 }}>
           {loading ? (
             <div className="flex h-full items-center justify-center">
               <svg className="h-8 w-8 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
@@ -187,12 +207,30 @@ export default function NetworkPage() {
               nodeColor={(node: GraphNode) => SEGMENT_COLORS[node.segment] ?? '#6b7280'}
               nodeVal={(node: GraphNode) => Math.max(2, node.score / 15)}
               linkColor={(link: GraphEdge) => EDGE_COLORS[link.type] ?? '#d1d5db'}
-              linkWidth={0.5}
-              linkOpacity={0.4}
+              linkWidth={(link: GraphEdge) => Math.min(4, 0.5 + link.weight * 0.8)}
+              linkOpacity={0.5}
+              linkLabel={(link: GraphEdge) => {
+                if (!link.labels || link.labels.length === 0) return link.label;
+                return link.labels
+                  .map(l => `${EDGE_TYPE_LABELS[l.type] ?? l.type}: ${l.name}`)
+                  .join('\n');
+              }}
               onNodeClick={(node: GraphNode) => setSelectedNode(node)}
               cooldownTicks={100}
-              width={selectedNode ? 700 : 900}
+              width={graphWidth}
               height={600}
+              linkCanvasObjectMode={() => 'after'}
+              linkCanvasObject={(link: { source: GraphNode; target: GraphNode } & GraphEdge, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                if (globalScale < 2 || !link.source.x || !link.target.x) return;
+                const midX = ((link.source.x ?? 0) + (link.target.x ?? 0)) / 2;
+                const midY = ((link.source.y ?? 0) + (link.target.y ?? 0)) / 2;
+                const fontSize = Math.max(1.5, 2.5 / globalScale);
+                ctx.font = `${fontSize}px Sans-Serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = EDGE_COLORS[link.type] ?? '#9ca3af';
+                ctx.fillText(link.weight > 1 ? `×${link.weight}` : '', midX, midY);
+              }}
               nodeCanvasObject={(node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
                 const size = Math.max(3, (node.score ?? 30) / 15);
                 const color = SEGMENT_COLORS[node.segment] ?? '#6b7280';
@@ -216,7 +254,7 @@ export default function NetworkPage() {
 
         {/* Node Detail Panel */}
         {selectedNode && (
-          <div className="w-72 rounded-xl border border-border bg-card p-4 self-start">
+          <div className="w-80 rounded-xl border border-border bg-card p-4 self-start max-h-[600px] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-sm font-semibold">{selectedNode.fullName}</h3>
@@ -230,8 +268,24 @@ export default function NetworkPage() {
             </div>
 
             <div className="mt-3 space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Engagement</span>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Engagement
+                  <span className="relative group">
+                    <svg className="h-3 w-3 text-muted-foreground/60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                      <path strokeWidth="2" strokeLinecap="round" d="M12 16v-4m0-4h.01" />
+                    </svg>
+                    <span className="fixed hidden group-hover:block z-[9999] w-56 rounded-md bg-foreground px-3 py-2 text-[10px] leading-relaxed text-background shadow-lg mt-1">
+                      <span className="font-semibold block mb-1">Engagement Score (0–100)</span>
+                      Weighted composite of:<br/>
+                      • Recency (30%) — days since last contact<br/>
+                      • Frequency (25%) — interactions in last 12 months<br/>
+                      • Depth (25%) — roles, awards, overseas representation<br/>
+                      • Breadth (20%) — distinct AOIs and agencies
+                    </span>
+                  </span>
+                </span>
                 <span className="font-medium">{selectedNode.score}</span>
               </div>
               <div className="flex justify-between">
@@ -253,6 +307,58 @@ export default function NetworkPage() {
                 </span>
               </div>
             </div>
+
+            {/* Connection Details */}
+            {(() => {
+              const nodeEdges = data?.edges.filter(e => e.source === selectedNode.id || e.target === selectedNode.id) ?? [];
+              const grouped: Record<string, { peer: string; names: string[] }[]> = { event: [], aoi: [], org: [] };
+
+              nodeEdges.forEach(edge => {
+                const peerId = edge.source === selectedNode.id ? edge.target : edge.source;
+                const peer = data?.nodes.find(n => n.id === peerId);
+                if (!peer) return;
+
+                edge.labels.forEach(l => {
+                  const group = grouped[l.type];
+                  if (!group) return;
+                  const existing = group.find(g => g.peer === peer.fullName);
+                  if (existing) {
+                    if (!existing.names.includes(l.name)) existing.names.push(l.name);
+                  } else {
+                    group.push({ peer: peer.fullName, names: [l.name] });
+                  }
+                });
+              });
+
+              return (
+                <div className="mt-4 space-y-3 border-t border-border pt-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Relationships</p>
+                  {Object.entries(grouped).map(([type, connections]) => {
+                    if (connections.length === 0) return null;
+                    return (
+                      <div key={type}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: EDGE_COLORS[type] }} />
+                          <span className="text-[10px] font-medium">{EDGE_TYPE_LABELS[type]}</span>
+                          <span className="text-[10px] text-muted-foreground">({connections.length})</span>
+                        </div>
+                        <ul className="space-y-1 pl-3.5">
+                          {connections.slice(0, 8).map((conn, i) => (
+                            <li key={i} className="text-[11px]">
+                              <span className="font-medium">{conn.peer}</span>
+                              <span className="text-muted-foreground"> — {conn.names.join(', ')}</span>
+                            </li>
+                          ))}
+                          {connections.length > 8 && (
+                            <li className="text-[10px] text-muted-foreground">+{connections.length - 8} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             <Link
               href={`/dashboard/stakeholders/${selectedNode.id}`}

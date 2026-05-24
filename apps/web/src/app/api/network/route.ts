@@ -17,6 +17,7 @@ type GraphEdge = {
   type: string;
   label: string;
   weight: number;
+  labels: { type: string; name: string }[];
 };
 
 export async function GET(request: NextRequest) {
@@ -55,8 +56,7 @@ export async function GET(request: NextRequest) {
 
   const profileMap = new Map(profiles.map(p => [p.nricHash, p]));
 
-  const edges: GraphEdge[] = [];
-  const edgeSet = new Set<string>();
+  const edgeMap = new Map<string, GraphEdge>();
 
   function addEdge(nric1: string, nric2: string, type: string, label: string) {
     if (nric1 === nric2) return;
@@ -64,11 +64,25 @@ export async function GET(request: NextRequest) {
     const p2 = profileMap.get(nric2);
     if (!p1 || !p2) return;
 
-    const key = [p1.id, p2.id].sort().join('-') + ':' + type;
-    if (edgeSet.has(key)) return;
-    edgeSet.add(key);
+    const pairKey = [p1.id, p2.id].sort().join('-');
+    const existing = edgeMap.get(pairKey);
 
-    edges.push({ source: p1.id, target: p2.id, type, label, weight: 1 });
+    if (existing) {
+      const alreadyHas = existing.labels.some(l => l.type === type && l.name === label);
+      if (!alreadyHas) {
+        existing.labels.push({ type, name: label });
+        existing.weight = existing.labels.length;
+      }
+    } else {
+      edgeMap.set(pairKey, {
+        source: p1.id,
+        target: p2.id,
+        type,
+        label,
+        weight: 1,
+        labels: [{ type, name: label }],
+      });
+    }
   }
 
   if (!edgeType || edgeType === 'event') {
@@ -126,6 +140,8 @@ export async function GET(request: NextRequest) {
       }
     });
   }
+
+  const edges = Array.from(edgeMap.values());
 
   const connectionCounts = new Map<string, number>();
   edges.forEach(e => {

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getHydratedStore } from '@/lib/store';
+import { getSession } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  const isAdmin = session?.role === 'admin';
   const dataStore = await getHydratedStore();
   const { searchParams } = request.nextUrl;
   const page = parseInt(searchParams.get('page') ?? '1');
@@ -40,6 +43,9 @@ export async function GET(request: NextRequest) {
 
     return {
       ...p,
+      email: isAdmin ? p.email : null,
+      mobileNumber: isAdmin ? p.mobileNumber : null,
+      nricMasked: isAdmin ? p.nricMasked : p.nricMasked.replace(/[A-Z0-9](?=.{4})/g, '•'),
       crossAgencyCount: agencies.size,
       agencies: Array.from(agencies),
       lastContactDate: lastInteraction?.meetingDate ?? null,

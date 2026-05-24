@@ -29,6 +29,8 @@ type Stakeholder360 = {
     lastContactDate: string | null;
     daysSinceContact: number | null;
   } | null;
+  canViewContact?: boolean;
+  assignedRM?: { name: string; email: string; agency: string } | null;
 };
 
 const TABS = [
@@ -145,10 +147,12 @@ export default function StakeholderProfilePage({
       <button onClick={() => router.back()} className="text-sm text-primary hover:underline">&larr; Back to Directory</button>
 
       <ProfileHeader
-        profile={p as never}
+        profile={{ ...p, id: p.id as string } as never}
         crossAgencyCount={data.crossAgencyCount}
         agencies={data.agencies}
         engagement={data.engagement}
+        canViewContact={data.canViewContact ?? true}
+        assignedRM={data.assignedRM}
       />
 
       {/* Engagement Timeline Chart */}
@@ -198,7 +202,23 @@ export default function StakeholderProfilePage({
           <div className="flex items-center gap-6">
             <div className="text-center">
               <p className="text-3xl font-bold">{data.engagement.totalScore}</p>
-              <p className="text-[10px] text-muted-foreground">Engagement</p>
+              <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
+                Engagement
+                <span className="relative group">
+                  <svg className="h-3 w-3 text-muted-foreground/60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                    <path strokeWidth="2" strokeLinecap="round" d="M12 16v-4m0-4h.01" />
+                  </svg>
+                  <span className="fixed hidden group-hover:block z-[9999] w-56 rounded-md bg-foreground px-3 py-2 text-[10px] leading-relaxed text-background shadow-lg mt-1">
+                    <span className="font-semibold block mb-1">Engagement Score (0–100)</span>
+                    Weighted composite of:<br/>
+                    • Recency (30%) — days since last contact<br/>
+                    • Frequency (25%) — interactions in last 12 months<br/>
+                    • Depth (25%) — roles, awards, overseas representation<br/>
+                    • Breadth (20%) — distinct AOIs and agencies
+                  </span>
+                </span>
+              </p>
             </div>
             <div className="flex-1 grid grid-cols-4 gap-3">
               {[

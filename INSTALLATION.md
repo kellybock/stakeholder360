@@ -209,6 +209,46 @@ To add LinkedIn data:
 4. Fill in education, experience, and skills
 5. Click **Save**
 
+### Data Access Control
+
+The system enforces role-based access control on stakeholder contact information:
+
+| Role | Access Level |
+|------|-------------|
+| **Admin** | Full access — can view email, mobile number, NRIC, and LinkedIn handle |
+| **RM / Staff** | Restricted — contact details are hidden; must request contact via assigned RM |
+
+**How contact requests work:**
+
+1. Non-admin users see a "Request Contact via RM" button instead of contact details
+2. Clicking the button prompts for a reason, then sends a notification to the stakeholder's assigned Relationship Manager (RM)
+3. The RM name and agency are displayed on the profile header for reference
+4. Contact requests are tracked with pending/approved/denied status
+
+**User roles:**
+- `admin` — Full system access including user management and all contact details
+- `rm` — Relationship Manager with restricted contact access; receives contact requests
+
+### Network Graph
+
+The Network Graph visualizes stakeholder connections across shared events, organizations, and areas of interest:
+- **Node color** indicates engagement segment (Champion, Rising Star, Active, At-Risk, Dormant)
+- **Node size** reflects engagement score
+- **Edge thickness** shows relationship strength (number of shared connections)
+- **Hover over edges** to see specific shared events, AOIs, or organizations
+- **Click a node** to see grouped relationship details in the side panel
+- Filter by Area of Interest, connection type, or minimum connections
+
+### Engagement Scoring
+
+Each stakeholder receives a composite engagement score (0–100) based on:
+- **Recency (30%)** — days since last interaction or event
+- **Frequency (25%)** — number of interactions and events in the last 12 months
+- **Depth (25%)** — community roles, awards, and overseas representation
+- **Breadth (20%)** — distinct areas of interest and agencies involved
+
+Hover over the info icon (ⓘ) next to any engagement score in the app for this breakdown.
+
 ---
 
 ## Configuration

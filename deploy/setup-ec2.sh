@@ -107,7 +107,7 @@ docker compose -f docker-compose.prod.yml up -d
 echo "[6/6] Verifying database setup..."
 sleep 5  # Wait for postgres to be ready
 
-# Ensure linkedin_profiles table exists in both schemas
+# Ensure application tables exist in both schemas
 docker compose -f docker-compose.prod.yml exec -T postgres psql -U youth360 -d youth360 -c "
 CREATE TABLE IF NOT EXISTS linkedin_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -140,6 +140,38 @@ CREATE TABLE IF NOT EXISTS test.linkedin_profiles (
   fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS contact_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stakeholder_id UUID NOT NULL,
+  stakeholder_name VARCHAR(255) NOT NULL,
+  requested_by UUID NOT NULL,
+  requested_by_name VARCHAR(255) NOT NULL,
+  requested_by_email VARCHAR(255) NOT NULL,
+  requested_by_agency VARCHAR(255) NOT NULL,
+  rm_name VARCHAR(255),
+  rm_email VARCHAR(255),
+  reason TEXT NOT NULL DEFAULT '',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ,
+  resolved_by UUID
+);
+CREATE TABLE IF NOT EXISTS test.contact_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stakeholder_id UUID NOT NULL,
+  stakeholder_name VARCHAR(255) NOT NULL,
+  requested_by UUID NOT NULL,
+  requested_by_name VARCHAR(255) NOT NULL,
+  requested_by_email VARCHAR(255) NOT NULL,
+  requested_by_agency VARCHAR(255) NOT NULL,
+  rm_name VARCHAR(255),
+  rm_email VARCHAR(255),
+  reason TEXT NOT NULL DEFAULT '',
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ,
+  resolved_by UUID
 );
 " 2>/dev/null && echo "  Database tables verified." || echo "  (Tables will be created on first run)"
 

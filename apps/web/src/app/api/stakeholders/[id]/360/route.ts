@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getHydratedStore } from '@/lib/store';
 import { getScoreForStakeholder } from '@/lib/engagement';
+import { getSession } from '@/lib/auth';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const session = await getSession();
+  const isAdmin = session?.role === 'admin';
   const dataStore = await getHydratedStore();
   const profile = dataStore.profiles.find(p => p.id === id);
 
@@ -100,23 +103,25 @@ export async function GET(
 
   timeline.sort((a, b) => b.date.localeCompare(a.date));
 
+  const assignedRM = dataStore.relationshipManagers.find(rm => rm.nricHash === nricHash);
+
   return NextResponse.json({
     profile: {
       id: profile.id,
-      nricMasked: profile.nricMasked,
+      nricMasked: isAdmin ? profile.nricMasked : profile.nricMasked.replace(/[A-Z0-9](?=.{4})/g, '•'),
       fullName: profile.fullName,
       caseId: profile.caseId,
       caseStatus: profile.caseStatus,
       race: profile.race,
       sex: profile.sex,
-      email: profile.email,
-      mobileNumber: profile.mobileNumber,
+      email: isAdmin ? profile.email : null,
+      mobileNumber: isAdmin ? profile.mobileNumber : null,
       residentialStatus: profile.residentialStatus,
       yearOfBirth: profile.yearOfBirth,
       employerOrg: profile.employerOrg,
       designation: profile.designation,
       dataConsent: profile.dataConsent,
-      linkedinHandle: profile.linkedinHandle,
+      linkedinHandle: isAdmin ? profile.linkedinHandle : null,
       writeUp: profile.writeUp,
       reasonForNomination: profile.reasonForNomination,
       areasOfInterest: profile.areasOfInterest,
@@ -134,5 +139,7 @@ export async function GET(
     crossAgencyCount: agencies.size,
     agencies: Array.from(agencies),
     engagement: (await getScoreForStakeholder(id)) ?? null,
+    canViewContact: isAdmin,
+    assignedRM: assignedRM ? { name: assignedRM.name, email: assignedRM.email, agency: assignedRM.agency } : null,
   });
 }

@@ -112,7 +112,23 @@ export default function EngagementAnalyticsPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-border bg-card p-5">
-          <p className="text-xs font-medium text-muted-foreground">Avg Engagement Score</p>
+          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+            Avg Engagement Score
+            <span className="relative group">
+              <svg className="h-3 w-3 text-muted-foreground/60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                <path strokeWidth="2" strokeLinecap="round" d="M12 16v-4m0-4h.01" />
+              </svg>
+              <span className="fixed hidden group-hover:block z-[9999] w-56 rounded-md bg-foreground px-3 py-2 text-[10px] leading-relaxed text-background shadow-lg mt-1">
+                <span className="font-semibold block mb-1">Engagement Score (0–100)</span>
+                Weighted composite of:<br/>
+                • Recency (30%) — days since last contact<br/>
+                • Frequency (25%) — interactions in last 12 months<br/>
+                • Depth (25%) — roles, awards, overseas representation<br/>
+                • Breadth (20%) — distinct AOIs and agencies
+              </span>
+            </span>
+          </p>
           <p className="mt-1 text-2xl font-bold">{summary.averageScore}</p>
           <p className="mt-1 text-xs text-muted-foreground">out of 100</p>
         </div>
@@ -138,7 +154,23 @@ export default function EngagementAnalyticsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Score Distribution Histogram */}
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="text-sm font-semibold">Score Distribution</h3>
+          <h3 className="text-sm font-semibold flex items-center gap-1">
+            Score Distribution
+            <span className="relative group">
+              <svg className="h-3 w-3 text-muted-foreground/60 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                <path strokeWidth="2" strokeLinecap="round" d="M12 16v-4m0-4h.01" />
+              </svg>
+              <span className="fixed hidden group-hover:block z-[9999] w-56 rounded-md bg-foreground px-3 py-2 text-[10px] leading-relaxed text-background shadow-lg mt-1">
+                <span className="font-semibold block mb-1">Engagement Score (0–100)</span>
+                Weighted composite of:<br/>
+                • Recency (30%) — days since last contact<br/>
+                • Frequency (25%) — interactions in last 12 months<br/>
+                • Depth (25%) — roles, awards, overseas representation<br/>
+                • Breadth (20%) — distinct AOIs and agencies
+              </span>
+            </span>
+          </h3>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={histogramData}>

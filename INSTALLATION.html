@@ -487,6 +487,49 @@ docker compose -f docker-compose.prod.yml exec app sh</code></pre>
   <li>Click <strong>Save</strong></li>
 </ol>
 
+<h3>Data Access Control</h3>
+<p>The system enforces role-based access control on stakeholder contact information:</p>
+<table>
+  <tr><th>Role</th><th>Access Level</th></tr>
+  <tr><td><strong>Admin</strong></td><td>Full access &mdash; can view email, mobile number, NRIC, and LinkedIn handle</td></tr>
+  <tr><td><strong>RM / Staff</strong></td><td>Restricted &mdash; contact details are hidden; must request contact via assigned RM</td></tr>
+</table>
+
+<p><strong>How contact requests work:</strong></p>
+<ol>
+  <li>Non-admin users see a &ldquo;Request Contact via RM&rdquo; button instead of contact details</li>
+  <li>Clicking the button prompts for a reason, then sends a notification to the stakeholder&rsquo;s assigned Relationship Manager (RM)</li>
+  <li>The RM name and agency are displayed on the profile header for reference</li>
+  <li>Contact requests are tracked with pending/approved/denied status</li>
+</ol>
+
+<p><strong>User roles:</strong></p>
+<ul>
+  <li><code>admin</code> &mdash; Full system access including user management and all contact details</li>
+  <li><code>rm</code> &mdash; Relationship Manager with restricted contact access; receives contact requests</li>
+</ul>
+
+<h3>Network Graph</h3>
+<p>The Network Graph visualizes stakeholder connections across shared events, organizations, and areas of interest:</p>
+<ul>
+  <li><strong>Node color</strong> indicates engagement segment (Champion, Rising Star, Active, At-Risk, Dormant)</li>
+  <li><strong>Node size</strong> reflects engagement score</li>
+  <li><strong>Edge thickness</strong> shows relationship strength (number of shared connections)</li>
+  <li><strong>Hover over edges</strong> to see specific shared events, AOIs, or organizations</li>
+  <li><strong>Click a node</strong> to see grouped relationship details in the side panel</li>
+  <li>Filter by Area of Interest, connection type, or minimum connections</li>
+</ul>
+
+<h3>Engagement Scoring</h3>
+<p>Each stakeholder receives a composite engagement score (0&ndash;100) based on:</p>
+<ul>
+  <li><strong>Recency (30%)</strong> &mdash; days since last interaction or event</li>
+  <li><strong>Frequency (25%)</strong> &mdash; number of interactions and events in the last 12 months</li>
+  <li><strong>Depth (25%)</strong> &mdash; community roles, awards, and overseas representation</li>
+  <li><strong>Breadth (20%)</strong> &mdash; distinct areas of interest and agencies involved</li>
+</ul>
+<p>Hover over the info icon next to any engagement score in the app for this breakdown.</p>
+
 <hr>
 
 <h2 id="configuration">Configuration</h2>
