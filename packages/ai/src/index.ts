@@ -2,11 +2,13 @@ export type { LLMProvider, LLMMessage, LLMStreamChunk, LLMChatParams, EmbeddingP
 export { ClaudeProvider } from './providers/claude';
 export { OpenAIProvider } from './providers/openai';
 export { GeminiProvider } from './providers/gemini';
+export { OllamaProvider } from './providers/ollama';
 
 import type { LLMProvider } from './providers/base';
 import { ClaudeProvider } from './providers/claude';
 import { OpenAIProvider } from './providers/openai';
 import { GeminiProvider } from './providers/gemini';
+import { OllamaProvider } from './providers/ollama';
 
 export function createLLMProvider(provider: string, apiKey?: string): LLMProvider {
   switch (provider) {
@@ -24,6 +26,11 @@ export function createLLMProvider(provider: string, apiKey?: string): LLMProvide
       const key = apiKey ?? process.env.GOOGLE_AI_API_KEY;
       if (!key) throw new Error('GOOGLE_AI_API_KEY is not set');
       return new GeminiProvider(key);
+    }
+    case 'ollama': {
+      const baseUrl = apiKey ?? process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+      const model = process.env.OLLAMA_MODEL ?? 'phi3:mini';
+      return new OllamaProvider(baseUrl, model);
     }
     default:
       throw new Error(`Unknown LLM provider: ${provider}`);

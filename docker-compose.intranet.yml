@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: youth360-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: youth360
+      POSTGRES_USER: youth360
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-youth360intranet}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./packages/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U youth360"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: youth360-redis
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: youth360-ollama
+    restart: unless-stopped
+    volumes:
+      - ollamadata:/root/.ollama
+    networks:
+      - internal
+
+  app:
+    image: youth360-app:latest
+    container_name: youth360-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://youth360:${DB_PASSWORD:-youth360intranet}@postgres:5432/youth360
+      REDIS_URL: redis://redis:6379
+      SESSION_SECRET: ${SESSION_SECRET}
+      NRIC_ENCRYPTION_KEY: ${NRIC_ENCRYPTION_KEY}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-phi3:mini}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:alpine
+    container_name: youth360-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/conf.d/intranet.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  redisdata:
+  ollamadata:
+
+networks:
+  internal:
+    driver: bridge

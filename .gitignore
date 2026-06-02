@@ -9,3 +9,8 @@ dist/
 .DS_Store
 coverage/
 .vercel/
+
+# Offline deployment bundles (large binary artifacts — transfer separately)
+youth360-native-bundle/
+youth360-native-bundle.zip
+youth360-offline-bundle/

@@ -1,5 +1,5 @@
 export interface AIProviderConfig {
-  provider: 'claude' | 'openai' | 'gemini';
+  provider: 'claude' | 'openai' | 'gemini' | 'ollama';
   label: string;
   envVar: string;
   apiKey: string;
@@ -41,6 +41,15 @@ function defaults(): AISettings {
         apiKey: process.env.GOOGLE_AI_API_KEY ?? '',
         enabled: !!process.env.GOOGLE_AI_API_KEY,
         model: 'gemini-2.0-flash',
+      },
+      {
+        provider: 'ollama',
+        label: 'Ollama (Local AI)',
+        envVar: 'OLLAMA_BASE_URL',
+        // apiKey field stores the base URL for Ollama (no real API key needed)
+        apiKey: process.env.OLLAMA_BASE_URL ?? '',
+        enabled: !!process.env.OLLAMA_BASE_URL,
+        model: process.env.OLLAMA_MODEL ?? 'phi3:mini',
       },
     ],
   };
