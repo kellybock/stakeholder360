@@ -15,7 +15,7 @@ export interface LLMChatParams {
 }
 
 export interface LLMProvider {
-  readonly name: 'claude' | 'openai' | 'gemini' | 'ollama';
+  readonly name: 'claude' | 'openai' | 'gemini' | 'ollama' | 'perplexity';
   chat(params: LLMChatParams): Promise<string>;
   chatStream(params: LLMChatParams): AsyncIterable<LLMStreamChunk>;
 }

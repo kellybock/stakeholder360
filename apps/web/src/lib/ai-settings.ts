@@ -1,5 +1,5 @@
 export interface AIProviderConfig {
-  provider: 'claude' | 'openai' | 'gemini' | 'ollama';
+  provider: 'claude' | 'openai' | 'gemini' | 'ollama' | 'perplexity';
   label: string;
   envVar: string;
   apiKey: string;
@@ -50,6 +50,14 @@ function defaults(): AISettings {
         apiKey: process.env.OLLAMA_BASE_URL ?? '',
         enabled: !!process.env.OLLAMA_BASE_URL,
         model: process.env.OLLAMA_MODEL ?? 'phi3:mini',
+      },
+      {
+        provider: 'perplexity',
+        label: 'Perplexity (Web Research)',
+        envVar: 'PERPLEXITY_API_KEY',
+        apiKey: process.env.PERPLEXITY_API_KEY ?? '',
+        enabled: !!process.env.PERPLEXITY_API_KEY,
+        model: 'sonar-pro',
       },
     ],
   };

@@ -22,6 +22,7 @@ interface ProfileHeaderProps {
     mobileNumber: string | null;
     employerOrg: string | null;
     designation: string | null;
+    rmDetails?: string | null;
   };
   crossAgencyCount: number;
   agencies: string[];
@@ -52,6 +53,10 @@ function lastContactColor(days: number | null): string {
 }
 
 export function ProfileHeader({ profile, crossAgencyCount, agencies, engagement, canViewContact = true, assignedRM }: ProfileHeaderProps) {
+  const rmLabel = assignedRM
+    ? `${assignedRM.name} (${assignedRM.agency})`
+    : profile.rmDetails ?? 'RM';
+
   const [requestSent, setRequestSent] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [showReasonInput, setShowReasonInput] = useState(false);
@@ -127,7 +132,7 @@ export function ProfileHeader({ profile, crossAgencyCount, agencies, engagement,
                 <span className="text-xs text-muted-foreground">Contact details restricted</span>
                 {requestSent ? (
                   <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                    Request sent{assignedRM ? ` to ${assignedRM.name}` : ''}
+                    Request sent to {rmLabel}
                   </span>
                 ) : showReasonInput ? (
                   <span className="flex items-center gap-1.5">
@@ -157,7 +162,7 @@ export function ProfileHeader({ profile, crossAgencyCount, agencies, engagement,
                     onClick={() => setShowReasonInput(true)}
                     className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
                   >
-                    Request Contact via RM{assignedRM ? ` (${assignedRM.name})` : ''}
+                    Request Contact via {rmLabel}
                   </button>
                 )}
               </span>

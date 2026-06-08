@@ -49,18 +49,25 @@ const MODEL_OPTIONS: Record<string, { value: string; label: string }[]> = {
     { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
     { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
   ],
+  perplexity: [
+    { value: 'sonar-pro', label: 'Sonar Pro — Best for research, web search with citations' },
+    { value: 'sonar', label: 'Sonar — Fast web search' },
+    { value: 'sonar-reasoning-pro', label: 'Sonar Reasoning Pro — Deep research with reasoning' },
+  ],
 };
 
 const PROVIDER_ICONS: Record<string, string> = {
   claude: 'A',
   openai: 'O',
   gemini: 'G',
+  perplexity: 'P',
 };
 
 const PROVIDER_COLORS: Record<string, string> = {
   claude: 'bg-orange-500',
   openai: 'bg-emerald-600',
   gemini: 'bg-blue-500',
+  perplexity: 'bg-sky-500',
 };
 
 const AVAILABLE_SCOPES = [

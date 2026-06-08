@@ -3,12 +3,14 @@ export { ClaudeProvider } from './providers/claude';
 export { OpenAIProvider } from './providers/openai';
 export { GeminiProvider } from './providers/gemini';
 export { OllamaProvider } from './providers/ollama';
+export { PerplexityProvider } from './providers/perplexity';
 
 import type { LLMProvider } from './providers/base';
 import { ClaudeProvider } from './providers/claude';
 import { OpenAIProvider } from './providers/openai';
 import { GeminiProvider } from './providers/gemini';
 import { OllamaProvider } from './providers/ollama';
+import { PerplexityProvider } from './providers/perplexity';
 
 export function createLLMProvider(provider: string, apiKey?: string): LLMProvider {
   switch (provider) {
@@ -31,6 +33,11 @@ export function createLLMProvider(provider: string, apiKey?: string): LLMProvide
       const baseUrl = apiKey ?? process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
       const model = process.env.OLLAMA_MODEL ?? 'phi3:mini';
       return new OllamaProvider(baseUrl, model);
+    }
+    case 'perplexity': {
+      const key = apiKey ?? process.env.PERPLEXITY_API_KEY;
+      if (!key) throw new Error('PERPLEXITY_API_KEY is not set');
+      return new PerplexityProvider(key);
     }
     default:
       throw new Error(`Unknown LLM provider: ${provider}`);
