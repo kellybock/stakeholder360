@@ -32,7 +32,7 @@ const NAV_ITEMS = [
     items: [
       { href: '/dashboard/workspace', label: 'My Workspace', icon: 'briefcase' },
       { href: '/dashboard/ai-chat', label: 'AI Assistant', icon: 'bot' },
-      { href: '/dashboard/research', label: 'Individual Research', icon: 'search' },
+      { href: '/dashboard/research', label: 'Research', icon: 'search' },
     ],
   },
   {

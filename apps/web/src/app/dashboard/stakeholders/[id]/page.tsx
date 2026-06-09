@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { ProfileHeader } from '@/components/stakeholder/profile-header';
 import { Timeline } from '@/components/stakeholder/timeline';
 import { EngagementTimeline } from '@/components/stakeholder/engagement-timeline';
+import { exportToCSV, exportToPDF, exportToWord } from '@/lib/export-research';
 
 type Stakeholder360 = {
   profile: Record<string, unknown>;
@@ -67,6 +68,12 @@ export default function StakeholderProfilePage({
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [researchContent, setResearchContent] = useState('');
   const [researchLoading, setResearchLoading] = useState(false);
+  const [orgResearchContent, setOrgResearchContent] = useState('');
+  const [orgResearchLoading, setOrgResearchLoading] = useState(false);
+  const [researchMode, setResearchMode] = useState<'brief' | 'full'>('brief');
+  const [orgResearchMode, setOrgResearchMode] = useState<'brief' | 'full'>('brief');
+  const [exportBusy, setExportBusy] = useState<string | null>(null);
+  const [orgExportBusy, setOrgExportBusy] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<{ type: string; priority: string; title: string; description: string }[]>([]);
 
   useEffect(() => {
@@ -537,7 +544,7 @@ export default function StakeholderProfilePage({
 
             {/* Web Research */}
             <div className="border-t border-border pt-4 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold flex items-center gap-1.5">
                     <span className="inline-flex items-center justify-center rounded bg-sky-500 px-1.5 py-0.5 text-[10px] font-bold text-white">P</span>
@@ -545,7 +552,22 @@ export default function StakeholderProfilePage({
                   </h3>
                   <p className="text-xs text-muted-foreground">Search the web for public information about this person</p>
                 </div>
-                <button
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex rounded-lg border border-border bg-muted p-0.5">
+                    {(['brief', 'full'] as const).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setResearchMode(m)}
+                        className={cn(
+                          'rounded-md px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+                          researchMode === m ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {m === 'brief' ? 'Quick Brief' : 'Full'}
+                      </button>
+                    ))}
+                  </div>
+                  <button
                   onClick={async () => {
                     setResearchLoading(true);
                     setResearchContent('');
@@ -553,7 +575,7 @@ export default function StakeholderProfilePage({
                       const res = await fetch('/api/ai/research', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ stakeholderId: id }),
+                        body: JSON.stringify({ stakeholderId: id, mode: researchMode }),
                       });
                       const data = await res.json();
                       if (!res.ok || data.error) throw new Error(data.error || 'Research failed');
@@ -584,8 +606,36 @@ export default function StakeholderProfilePage({
                 >
                   {researchLoading ? 'Researching...' : 'Research Person'}
                 </button>
+                </div>
               </div>
 
+              {researchContent && (
+                <div className="flex items-center justify-end gap-1 -mt-2">
+                  {(['word', 'csv', 'pdf'] as const).map(fmt => (
+                    <button
+                      key={fmt}
+                      onClick={async () => {
+                        setExportBusy(fmt);
+                        try {
+                          const personName = String(p.name ?? p.fullName ?? 'Person');
+                          if (fmt === 'word') await exportToWord(researchContent, personName);
+                          else if (fmt === 'csv') exportToCSV(researchContent, personName);
+                          else exportToPDF(researchContent, personName);
+                        } finally { setExportBusy(null); }
+                      }}
+                      disabled={!!exportBusy}
+                      className={cn(
+                        'rounded px-2 py-0.5 text-[10px] font-semibold border transition-colors',
+                        exportBusy === fmt
+                          ? 'border-sky-200 bg-sky-100 text-sky-400 cursor-wait'
+                          : 'border-sky-300 text-sky-700 hover:bg-sky-100 disabled:opacity-40'
+                      )}
+                    >
+                      {exportBusy === fmt ? '…' : fmt === 'word' ? 'Word' : fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
               {researchContent ? (
                 <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm prose prose-sm max-w-none dark:prose-invert">
                   {researchContent.split('\n').map((line, i) => {
@@ -616,6 +666,153 @@ export default function StakeholderProfilePage({
               ) : !researchLoading ? (
                 <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-sky-200 text-sm text-muted-foreground">
                   Click &ldquo;Research Person&rdquo; to search for public information
+                </div>
+              ) : (
+                <div className="flex h-24 items-center justify-center">
+                  <svg className="h-6 w-6 animate-spin text-sky-500" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            {/* Organisation Research */}
+            <div className="border-t border-border pt-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    <span className="inline-flex items-center justify-center rounded bg-sky-500 px-1.5 py-0.5 text-[10px] font-bold text-white">P</span>
+                    Organisation Research
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {p.employerOrg
+                      ? <>Research <span className="font-medium text-foreground">{String(p.employerOrg)}</span> using AI web search</>
+                      : 'No employer organisation on record'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex rounded-lg border border-border bg-muted p-0.5">
+                    {(['brief', 'full'] as const).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setOrgResearchMode(m)}
+                        className={cn(
+                          'rounded-md px-2.5 py-0.5 text-[10px] font-medium transition-colors',
+                          orgResearchMode === m ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        {m === 'brief' ? 'Quick Brief' : 'Full'}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                  onClick={async () => {
+                    if (!p.employerOrg) return;
+                    setOrgResearchLoading(true);
+                    setOrgResearchContent('');
+                    try {
+                      const res = await fetch('/api/ai/research/organisation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ orgName: String(p.employerOrg), mode: orgResearchMode }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok || data.error) throw new Error(data.error || 'Research failed');
+                      const CHAT = [
+                        /^if you('d| would)? (want|like|need|have)/i,
+                        /^i can also/i, /^i could also/i, /^let me know/i,
+                        /^feel free to/i, /^would you like/i,
+                        /^please (let me know|don't hesitate)/i,
+                        /^don't hesitate/i, /^is there anything (else|more)/i,
+                        /^should you (want|need|require)/i,
+                        /^if (there are|you have) (any|further)/i,
+                      ];
+                      const lines = (data.content ?? '').split('\n');
+                      let end = lines.length;
+                      while (end > 0 && (!lines[end-1].trim() || CHAT.some((p: RegExp) => p.test(lines[end-1].trim())))) end--;
+                      setOrgResearchContent(lines.slice(0, end).join('\n'));
+                    } catch (err) {
+                      setOrgResearchContent(`**Error:** ${err instanceof Error ? err.message : 'Research failed'}`);
+                    } finally {
+                      setOrgResearchLoading(false);
+                    }
+                  }}
+                  disabled={orgResearchLoading || !p.employerOrg}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                    !p.employerOrg
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                      : orgResearchLoading
+                        ? 'bg-muted text-muted-foreground'
+                        : 'bg-sky-500 text-white hover:bg-sky-600'
+                  )}
+                >
+                  {orgResearchLoading ? 'Researching...' : 'Research Organisation'}
+                </button>
+                </div>
+              </div>
+
+              {orgResearchContent && (
+                <div className="flex items-center justify-end gap-1 -mt-2">
+                  {(['word', 'csv', 'pdf'] as const).map(fmt => (
+                    <button
+                      key={fmt}
+                      onClick={async () => {
+                        setOrgExportBusy(fmt);
+                        try {
+                          const orgTitle = String(p.employerOrg ?? 'Organisation');
+                          if (fmt === 'word') await exportToWord(orgResearchContent, orgTitle);
+                          else if (fmt === 'csv') exportToCSV(orgResearchContent, orgTitle);
+                          else exportToPDF(orgResearchContent, orgTitle);
+                        } finally { setOrgExportBusy(null); }
+                      }}
+                      disabled={!!orgExportBusy}
+                      className={cn(
+                        'rounded px-2 py-0.5 text-[10px] font-semibold border transition-colors',
+                        orgExportBusy === fmt
+                          ? 'border-sky-200 bg-sky-100 text-sky-400 cursor-wait'
+                          : 'border-sky-300 text-sky-700 hover:bg-sky-100 disabled:opacity-40'
+                      )}
+                    >
+                      {orgExportBusy === fmt ? '…' : fmt === 'word' ? 'Word' : fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {orgResearchContent ? (
+                <div className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm prose prose-sm max-w-none dark:prose-invert">
+                  {orgResearchContent.split('\n').map((line, i) => {
+                    const renderInline = (text: string): React.ReactNode[] => {
+                      const tokens = text.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g);
+                      return tokens.map((token, j) => {
+                        if (token.startsWith('**') && token.endsWith('**')) return <strong key={j}>{token.slice(2, -2)}</strong>;
+                        const lm = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+                        if (lm) {
+                          const isCitationNum = /^\d+$/.test(lm[1]);
+                          return isCitationNum
+                            ? <a key={j} href={lm[2]} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-800 font-medium no-underline align-super text-[10px]">[{lm[1]}]</a>
+                            : <a key={j} href={lm[2]} target="_blank" rel="noopener noreferrer" className="text-sky-600 underline underline-offset-2 hover:text-sky-800 break-all">{lm[1]}</a>;
+                        }
+                        return token;
+                      });
+                    };
+                    if (line.startsWith('## ')) return <h2 key={i} className="mt-5 mb-2 text-base font-semibold border-b border-sky-200 pb-1">{renderInline(line.slice(3))}</h2>;
+                    if (line.startsWith('### ')) return <h3 key={i} className="mt-3 mb-1 text-sm font-semibold">{renderInline(line.slice(4))}</h3>;
+                    if (line.startsWith('# ')) return <h1 key={i} className="mt-4 mb-2 text-lg font-bold">{renderInline(line.slice(2))}</h1>;
+                    if (line.startsWith('- ')) return <li key={i} className="ml-4 list-disc">{renderInline(line.slice(2))}</li>;
+                    if (/^\d+\.\s/.test(line)) return <li key={i} className="ml-4 list-decimal text-xs">{renderInline(line.replace(/^\d+\.\s/, ''))}</li>;
+                    if (line.startsWith('---')) return <hr key={i} className="my-3" />;
+                    if (line.trim() === '') return <br key={i} />;
+                    return <p key={i} className="my-1">{renderInline(line)}</p>;
+                  })}
+                </div>
+              ) : !orgResearchLoading ? (
+                <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-sky-200 text-sm text-muted-foreground">
+                  {p.employerOrg
+                    ? <>Click &ldquo;Research Organisation&rdquo; to search for public information on {String(p.employerOrg)}</>
+                    : 'No employer organisation on record for this stakeholder'}
                 </div>
               ) : (
                 <div className="flex h-24 items-center justify-center">

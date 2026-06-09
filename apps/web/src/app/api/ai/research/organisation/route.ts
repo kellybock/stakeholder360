@@ -1,19 +1,12 @@
 import { NextRequest } from 'next/server';
-import { getHydratedStore } from '@/lib/store';
 import { getProviderApiKey } from '@/lib/ai-settings';
-import { buildIndividualPrompt, SYSTEM_INDIVIDUAL, type ResearchMode } from '@/lib/research-prompts';
+import { buildOrgPrompt, SYSTEM_ORGANISATION, type ResearchMode } from '@/lib/research-prompts';
 
 export async function POST(request: NextRequest) {
-  const dataStore = await getHydratedStore();
-  const { stakeholderId, mode = 'full' } = await request.json();
+  const { orgName, website, sector, mode = 'full' } = await request.json();
 
-  if (!stakeholderId) {
-    return Response.json({ error: 'stakeholderId is required' }, { status: 400 });
-  }
-
-  const profile = dataStore.profiles.find(p => p.id === stakeholderId);
-  if (!profile) {
-    return Response.json({ error: 'Stakeholder not found' }, { status: 404 });
+  if (!orgName?.trim()) {
+    return Response.json({ error: 'Organisation name is required' }, { status: 400 });
   }
 
   const apiKey = getProviderApiKey('perplexity') ?? undefined;
@@ -24,11 +17,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const name = profile.fullName;
-  const org = profile.employerOrg ?? null;
+  const org = orgName.trim();
+  const site = website?.trim() || null;
+  const sec = sector?.trim() || null;
   const researchMode = (mode === 'brief' ? 'brief' : 'full') as ResearchMode;
 
-  const prompt = buildIndividualPrompt(name, org, null, researchMode);
+  const prompt = buildOrgPrompt(org, site, sec, researchMode);
 
   let perplexityRes: Response;
   try {
@@ -41,7 +35,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'sonar-pro',
         messages: [
-          { role: 'system', content: SYSTEM_INDIVIDUAL },
+          { role: 'system', content: SYSTEM_ORGANISATION },
           { role: 'user', content: prompt },
         ],
         max_tokens: researchMode === 'brief' ? 2000 : 8192,
